@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from venv import logger
 
+import redis
 import unishox2
 from meshtastic.admin_pb2 import AdminMessage
 from meshtastic.mesh_pb2 import Position, User, Routing, Waypoint, RouteDiscovery, NeighborInfo
@@ -14,8 +15,9 @@ from prometheus_client import CollectorRegistry
 
 
 class Processor(ABC):
-    def __init__(self, registry: CollectorRegistry):
+    def __init__(self, registry: CollectorRegistry, redis_client: redis.Redis):
         self.registry = registry
+        self.redis_client = redis_client
 
     @abstractmethod
     def process(self, payload):

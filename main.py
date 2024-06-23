@@ -67,6 +67,6 @@ if __name__ == "__main__":
         keepalive=int(os.getenv('mqtt_keepalive', 60)),
     )
     # Configure the Processor and the Exporter
-    processor = MessageProcessor(registry)
+    processor = MessageProcessor(registry, redis_client)
 
     mqtt_client.loop_forever()
