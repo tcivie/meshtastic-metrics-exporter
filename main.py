@@ -13,7 +13,7 @@ from exporter.processors import MessageProcessor
 
 def handle_connect(client, userdata, flags, reason_code, properties):
     print(f"Connected with result code {reason_code}")
-    client.subscribe(os.getenv('mqtt_topic', 'msh/israel/#'))
+    client.subscribe(os.getenv('MQTT_TOPIC', 'msh/israel/#'))
 
 
 def handle_message(client, userdata, message):
@@ -34,17 +34,17 @@ if __name__ == "__main__":
     load_dotenv()
     # Create Redis client
     redis_client = redis.Redis(
-        host=os.getenv('redis_host'),
-        port=int(os.getenv('redis_port')),
-        db=int(os.getenv('redis_db', 0)),
-        password=os.getenv('redis_password', None),
+        host=os.getenv('REDIS_HOST'),
+        port=int(os.getenv('REDIS_PORT')),
+        db=int(os.getenv('REDIS_DB', 0)),
+        password=os.getenv('REDIS_PASSWORD', None),
     )
 
     # Configure Prometheus exporter
     registry = CollectorRegistry()
     push_to_gateway(
-        os.getenv('prometheus_pushgateway'),
-        job=os.getenv('prometheus_job'),
+        os.getenv('PROMETHEUS_PUSHGATEWAY'),
+        job=os.getenv('PROMETHEUS_JOB'),
         registry=registry,
     )
 
@@ -54,17 +54,17 @@ if __name__ == "__main__":
     mqtt_client.on_connect = handle_connect
     mqtt_client.on_message = handle_message
 
-    if bool(os.getenv('mqtt_is_tls', False)):
+    if bool(os.getenv('MQTT_IS_TLS', False)):
         tls_context = mqtt.ssl.create_default_context()
         mqtt_client.tls_set_context(tls_context)
 
-    if os.getenv('mqtt_username', None) and os.getenv('mqtt_password', None):
-        mqtt_client.username_pw_set(os.getenv('mqtt_username'), os.getenv('mqtt_password'))
+    if os.getenv('MQTT_USERNAME', None) and os.getenv('MQTT_PASSWORD', None):
+        mqtt_client.username_pw_set(os.getenv('MQTT_USERNAME'), os.getenv('MQTT_PASSWORD'))
 
     mqtt_client.connect(
-        os.getenv('mqtt_host'),
-        int(os.getenv('mqtt_port')),
-        keepalive=int(os.getenv('mqtt_keepalive', 60)),
+        os.getenv('MQTT_HOST'),
+        int(os.getenv('MQTT_PORT')),
+        keepalive=int(os.getenv('MQTT_KEEPALIVE', 60)),
     )
     # Configure the Processor and the Exporter
     processor = MessageProcessor(registry, redis_client)
