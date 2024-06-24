@@ -1,7 +1,8 @@
 import os
 
 import redis
-from meshtastic.mesh_pb2 import MeshPacket
+from meshtastic.config_pb2 import Config
+from meshtastic.mesh_pb2 import MeshPacket, HardwareModel
 from prometheus_client import CollectorRegistry, Counter
 
 from exporter.registry import ProcessorRegistry, ClientDetails
@@ -27,12 +28,12 @@ class MessageProcessor:
 
         source_client_details = self._get_client_details(getattr(mesh_packet, 'from'))
         if os.getenv('MESH_HIDE_SOURCE_DATA', 'false') == 'true':
-            source_client_details = ClientDetails(node_id=source_client_details['id'], short_name='Hidden',
+            source_client_details = ClientDetails(node_id=source_client_details.node_id, short_name='Hidden',
                                                   long_name='Hidden')
 
         destination_client_details = self._get_client_details(getattr(mesh_packet, 'to'))
         if os.getenv('MESH_HIDE_DESTINATION_DATA', 'false') == 'true':
-            destination_client_details = ClientDetails(node_id=destination_client_details['id'], short_name='Hidden',
+            destination_client_details = ClientDetails(node_id=destination_client_details.node_id, short_name='Hidden',
                                                        long_name='Hidden')
 
         if port_num in map(int, os.getenv('FILTERED_PORTS', '1').split(',')):  # Filter out ports
@@ -62,6 +63,11 @@ class MessageProcessor:
     def _get_client_details(self, node_id: str) -> ClientDetails:
         details = self.redis_client.hgetall(f"node:{node_id}")
         if details:
-            return ClientDetails(node_id=node_id, short_name=details['short_name'], long_name=details['long_name'])
+            return ClientDetails(node_id=node_id,
+                                 short_name=details.get('short_name', 'Unknown'),
+                                 long_name=details.get('long_name', 'Unknown'),
+                                 hardware_model=details.get('hardware_model', HardwareModel.UNSET),
+                                 role=details.get('role', Config.DeviceConfig.Role.ValueType.UNSET),
+                                 )
 
-        return ClientDetails(node_id=node_id, short_name='Unknown', long_name='Unknown')
+        return ClientDetails(node_id=node_id)
