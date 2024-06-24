@@ -1,0 +1,8 @@
+global:
+  scrape_interval: 15s # How often to scrape targets by default
+  evaluation_interval: 15s # How often to evaluate rules by default
+
+scrape_configs:
+  - job_name: 'meshtastic'
+    static_configs:
+      - targets: [ 'host.docker.internal:9464' ]

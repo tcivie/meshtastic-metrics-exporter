@@ -1,0 +1,54 @@
+version: "3"
+
+volumes:
+  prometheus_data:
+  grafana_data:
+  redis_data:
+
+services:
+  prometheus:
+    image: prom/prometheus:v2.51.2
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - mesh-bridge
+    ports:
+      - "9090:9090"
+    volumes:
+      - prometheus_data:/prometheus
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+
+  grafana:
+    image: grafana/grafana-oss:10.4.2
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    networks:
+      - mesh-bridge
+    volumes:
+      - grafana_data:/var/lib/grafana
+
+  exporter:
+    build: .
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    env_file:
+      - .env
+    networks:
+      - mesh-bridge
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    networks:
+      - mesh-bridge
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+networks:
+  mesh-bridge:
+    driver: bridge

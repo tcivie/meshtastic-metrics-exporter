@@ -16,8 +16,8 @@ from prometheus_client import CollectorRegistry, Counter
 
 
 class ClientDetails:
-    def __init__(self, id, short_name, long_name):
-        self.id = id
+    def __init__(self, node_id, short_name, long_name):
+        self.node_id = node_id
         self.short_name = short_name
         self.long_name = long_name
 
@@ -36,16 +36,16 @@ class ProcessorRegistry:
     _registry = {}
 
     @classmethod
-    def register_processor(cls, portnum):
+    def register_processor(cls, port_num):
         def inner_wrapper(wrapped_class):
-            cls._registry[portnum] = wrapped_class()
+            cls._registry[port_num] = wrapped_class
             return wrapped_class
 
         return inner_wrapper
 
     @classmethod
-    def get_processor(cls, portnum):
-        return cls._registry.get(portnum, UnknownAppProcessor())
+    def get_processor(cls, port_num) -> type(Processor):
+        return cls._registry.get(port_num, UnknownAppProcessor)
 
 
 @ProcessorRegistry.register_processor(PortNum.UNKNOWN_APP)
@@ -55,7 +55,7 @@ class UnknownAppProcessor(Processor):
         return None
 
 
-@ProcessorRegistry.register_processor('TEXT_MESSAGE_APP')
+@ProcessorRegistry.register_processor(PortNum.TEXT_MESSAGE_APP)
 class TextMessageAppProcessor(Processor):
     def __init__(self, registry: CollectorRegistry, redis_client: redis.Redis):
         super().__init__(registry, redis_client)
@@ -72,7 +72,7 @@ class TextMessageAppProcessor(Processor):
         if os.getenv('HIDE_MESSAGE', 'true') == 'true':
             message = 'Hidden'
         self.message_counter.labels(
-            client_id=client_details.id,
+            client_id=client_details.node_id,
             short_name=client_details.short_name,
             long_name=client_details.long_name,
             message_content=message
