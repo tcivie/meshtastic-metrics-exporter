@@ -361,15 +361,17 @@ class ClientDetails:
         self.role: Config.DeviceConfig.Role = role
 
     def get_role_name_from_role(self):
-        for name, value in Config.DeviceConfig.Role.__dict__.items():
-            if isinstance(value, int) and value == self.role:
-                return name
+        descriptor = Config.DeviceConfig.Role.DESCRIPTOR
+        for enum_value in descriptor.values:
+            if enum_value.number == self.role:
+                return enum_value.name
         return 'UNKNOWN_ROLE'
 
     def get_hardware_model_name_from_code(self):
-        for name, value in HardwareModel.__dict__.items():
-            if isinstance(value, int) and value == self.hardware_model:
-                return name
+        descriptor = HardwareModel.DESCRIPTOR
+        for enum_value in descriptor.values:
+            if enum_value.number == self.hardware_model:
+                return enum_value.name
         return 'UNKNOWN_HARDWARE_MODEL'
 
     def to_dict(self):
