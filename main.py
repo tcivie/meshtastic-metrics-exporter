@@ -1,5 +1,6 @@
 import logging
 import os
+from datetime import datetime
 
 import paho.mqtt.client as mqtt
 import redis
@@ -18,7 +19,8 @@ def handle_connect(client, userdata, flags, reason_code, properties):
 
 
 def handle_message(client, userdata, message):
-    print(f"Received message on topic '{message.topic}'")
+    current_timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    print(f"Received message on topic '{message.topic}' at {current_timestamp}")
     envelope = ServiceEnvelope()
     envelope.ParseFromString(message.payload)
 
