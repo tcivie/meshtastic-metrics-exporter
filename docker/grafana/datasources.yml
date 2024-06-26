@@ -1,0 +1,19 @@
+apiVersion: 1
+datasources:
+  - name: prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: true
+    jsonData:
+      httpMethod: POST
+
+  - name: redis-datasource
+    type: redis-datasource
+    access: proxy
+    url: redis://redis:6379/0
+    isDefault: false
+    editable: true
+    jsonData:
+      client: standalone

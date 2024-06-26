@@ -1,0 +1,7 @@
+FROM grafana/grafana-oss:10.4.2
+
+# Install the Redis datasource plugin
+RUN grafana-cli plugins install redis-datasource
+
+# Copy the datasource configuration
+COPY docker/grafana/datasources.yml /etc/grafana/provisioning/datasources/datasources.yml

@@ -1,5 +1,3 @@
-version: "3"
-
 volumes:
   prometheus_data:
   grafana_data:
@@ -17,10 +15,12 @@ services:
       - "9090:9090"
     volumes:
       - prometheus_data:/prometheus
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
 
   grafana:
-    image: grafana/grafana-oss:10.4.2
+    build:
+      context: .
+      dockerfile: ./docker/grafana/Dockerfile.grafana
     restart: unless-stopped
     ports:
       - "3000:3000"
@@ -28,9 +28,12 @@ services:
       - mesh-bridge
     volumes:
       - grafana_data:/var/lib/grafana
+      - ./docker/grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
 
   exporter:
-    build: .
+    build:
+      context: .
+      dockerfile: ./docker/exporter/Dockerfile.exporter
     restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"
