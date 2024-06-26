@@ -138,9 +138,10 @@ class MessageProcessor:
         processor.process(payload, client_details=source_client_details)
 
     def get_port_name_from_portnum(self, port_num):
-        for name, value in PortNum.__dict__.items():
-            if isinstance(value, int) and value == port_num:
-                return name
+        descriptor = PortNum.DESCRIPTOR
+        for enum_value in descriptor.values:
+            if enum_value.number == port_num:
+                return enum_value.name
         return 'UNKNOWN_PORT'
 
     def process_simple_packet_details(self, destination_client_details, mesh_packet, port_num, source_client_details):
