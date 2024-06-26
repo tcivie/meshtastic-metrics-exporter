@@ -11,8 +11,6 @@ services:
       - "host.docker.internal:host-gateway"
     networks:
       - mesh-bridge
-    ports:
-      - "9090:9090"
     volumes:
       - prometheus_data:/prometheus
       - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
@@ -47,8 +45,6 @@ services:
     restart: unless-stopped
     networks:
       - mesh-bridge
-    ports:
-      - "6379:6379"
     volumes:
       - redis_data:/data
 
