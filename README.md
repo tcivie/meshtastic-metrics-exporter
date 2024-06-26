@@ -82,7 +82,7 @@ The project uses a `.env` file for configuration. Here is an example of the conf
 # Description: Environment variables for the application
 
 # Redis connection details
-REDIS_HOST=localhost
+REDIS_HOST=redis
 REDIS_PORT=6379
 REDIS_DB=0
 REDIS_PASSWORD=
