@@ -5,4 +5,4 @@ global:
 scrape_configs:
   - job_name: 'meshtastic'
     static_configs:
-      - targets: [ 'host.docker.internal:9464' ]
+      - targets: [ 'exporter:9464' ]
