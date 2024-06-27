@@ -21,6 +21,12 @@ def handle_connect(client, userdata, flags, reason_code, properties):
 def handle_message(client, userdata, message):
     current_timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     print(f"Received message on topic '{message.topic}' at {current_timestamp}")
+
+    # Filter out messages from the 'stat' topic
+    if '/stat/' in message.topic:
+        print(f"Filtered out message from topic containing '/stat/': {message.topic}")
+        return
+
     envelope = ServiceEnvelope()
     envelope.ParseFromString(message.payload)
 
