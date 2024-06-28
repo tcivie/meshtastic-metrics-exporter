@@ -1,9 +1,8 @@
-import json
 import os
 from abc import ABC, abstractmethod
 from venv import logger
 
-import redis
+import psycopg
 import unishox2
 from meshtastic.admin_pb2 import AdminMessage
 from meshtastic.config_pb2 import Config
@@ -15,6 +14,7 @@ from meshtastic.remote_hardware_pb2 import HardwareMessage
 from meshtastic.storeforward_pb2 import StoreAndForward
 from meshtastic.telemetry_pb2 import Telemetry, DeviceMetrics, EnvironmentMetrics, AirQualityMetrics, PowerMetrics
 from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram
+from psycopg_pool import ConnectionPool
 
 
 class _Metrics:
@@ -351,6 +351,22 @@ class _Metrics:
         )
 
 
+def get_hardware_model_name_from_code(hardware_model):
+    descriptor = HardwareModel.DESCRIPTOR
+    for enum_value in descriptor.values:
+        if enum_value.number == hardware_model:
+            return enum_value.name
+    return 'UNKNOWN_HARDWARE_MODEL'
+
+
+def get_role_name_from_role(role):
+    descriptor = Config.DeviceConfig.Role.DESCRIPTOR
+    for enum_value in descriptor.values:
+        if enum_value.number == role:
+            return enum_value.name
+    return 'UNKNOWN_ROLE'
+
+
 class ClientDetails:
     def __init__(self, node_id, short_name='Unknown', long_name='Unknown', hardware_model=HardwareModel.UNSET,
                  role=None):
@@ -360,38 +376,29 @@ class ClientDetails:
         self.hardware_model: HardwareModel = hardware_model
         self.role: Config.DeviceConfig.Role = role
 
-    def get_role_name_from_role(self):
-        descriptor = Config.DeviceConfig.Role.DESCRIPTOR
-        for enum_value in descriptor.values:
-            if enum_value.number == self.role:
-                return enum_value.name
-        return 'UNKNOWN_ROLE'
-
-    def get_hardware_model_name_from_code(self):
-        descriptor = HardwareModel.DESCRIPTOR
-        for enum_value in descriptor.values:
-            if enum_value.number == self.hardware_model:
-                return enum_value.name
-        return 'UNKNOWN_HARDWARE_MODEL'
-
     def to_dict(self):
         return {
             'node_id': self.node_id,
             'short_name': self.short_name,
             'long_name': self.long_name,
-            'hardware_model': self.get_hardware_model_name_from_code(),
-            'role': self.get_role_name_from_role()
+            'hardware_model': get_hardware_model_name_from_code(self.hardware_model),
+            'role': get_role_name_from_role(self.role)
         }
 
 
 class Processor(ABC):
-    def __init__(self, registry: CollectorRegistry, redis_client: redis.Redis):
-        self.redis_client = redis_client
+    def __init__(self, registry: CollectorRegistry, db_pool: ConnectionPool):
+        self.db_pool = db_pool
         self.metrics = _Metrics(registry)
 
     @abstractmethod
     def process(self, payload: bytes, client_details: ClientDetails):
         pass
+
+    def execute_db_operation(self, operation):
+        with self.db_pool.connection() as conn:
+            with conn.cursor() as cur:
+                return operation(cur, conn)
 
 
 class ProcessorRegistry:
@@ -419,14 +426,10 @@ class UnknownAppProcessor(Processor):
 
 @ProcessorRegistry.register_processor(PortNum.TEXT_MESSAGE_APP)
 class TextMessageAppProcessor(Processor):
-    def __init__(self, registry: CollectorRegistry, redis_client: redis.Redis):
-        super().__init__(registry, redis_client)
-
     def process(self, payload: bytes, client_details: ClientDetails):
         logger.debug("Received TEXT_MESSAGE_APP packet")
         message = payload.decode('utf-8')
-        if os.getenv('HIDE_MESSAGE', 'true') == 'true':  # Currently there is no use for the message content,
-            # but later we could store it in redis or something
+        if os.getenv('HIDE_MESSAGE', 'true') == 'true':
             message = 'Hidden'
         self.metrics.message_length_histogram.labels(
             client_id=client_details.node_id
@@ -469,13 +472,52 @@ class NodeInfoAppProcessor(Processor):
         logger.debug("Received NODEINFO_APP packet")
         user = User()
         user.ParseFromString(payload)
-        client_details.short_name = user.short_name
-        client_details.long_name = user.long_name
-        client_details.hardware_model = user.hw_model
-        client_details.role = user.role
-        user_details_json = json.dumps(client_details.to_dict())
-        self.redis_client.set(f"node:{client_details.node_id}", user_details_json)
-        pass
+
+        def db_operation(cur, conn):
+            # First, try to select the existing record
+            cur.execute("""
+                SELECT short_name, long_name, hardware_model, role
+                FROM client_details
+                WHERE node_id = %s;
+            """, (client_details.node_id,))
+            existing_record = cur.fetchone()
+
+            if existing_record:
+                # If record exists, update only the fields that are provided in the new data
+                update_fields = []
+                update_values = []
+                if user.short_name:
+                    update_fields.append("short_name = %s")
+                    update_values.append(user.short_name)
+                if user.long_name:
+                    update_fields.append("long_name = %s")
+                    update_values.append(user.long_name)
+                if user.hw_model != HardwareModel.UNSET:
+                    update_fields.append("hardware_model = %s")
+                    update_values.append(get_hardware_model_name_from_code(user.hw_model))
+                if user.role is not None:
+                    update_fields.append("role = %s")
+                    update_values.append(get_role_name_from_role(user.role))
+
+                if update_fields:
+                    update_query = f"""
+                        UPDATE client_details
+                        SET {", ".join(update_fields)}
+                        WHERE node_id = %s
+                    """
+                    cur.execute(update_query, update_values + [client_details.node_id])
+            else:
+                # If record doesn't exist, insert a new one
+                cur.execute("""
+                    INSERT INTO client_details (node_id, short_name, long_name, hardware_model, role)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (client_details.node_id, user.short_name, user.long_name,
+                      get_hardware_model_name_from_code(user.hw_model), get_role_name_from_role(user.role)))
+
+            conn.commit()
+
+        self.execute_db_operation(db_operation)
+
 
 
 @ProcessorRegistry.register_processor(PortNum.ROUTING_APP)
@@ -584,8 +626,8 @@ class RangeTestAppProcessor(Processor):
 
 @ProcessorRegistry.register_processor(PortNum.TELEMETRY_APP)
 class TelemetryAppProcessor(Processor):
-    def __init__(self, registry: CollectorRegistry, redis_client: redis.Redis):
-        super().__init__(registry, redis_client)
+    def __init__(self, registry: CollectorRegistry, db_connection: psycopg.connection):
+        super().__init__(registry, db_connection)
 
     def process(self, payload: bytes, client_details: ClientDetails):
         logger.debug("Received TELEMETRY_APP packet")

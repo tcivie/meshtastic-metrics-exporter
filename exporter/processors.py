@@ -1,20 +1,18 @@
 import base64
-import json
 import os
 
-import redis
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from meshtastic.config_pb2 import Config
-from meshtastic.mesh_pb2 import MeshPacket, HardwareModel, Data
+from meshtastic.mesh_pb2 import MeshPacket, Data, HardwareModel
 from meshtastic.portnums_pb2 import PortNum
 from prometheus_client import CollectorRegistry, Counter, Histogram, Gauge
+from psycopg_pool import ConnectionPool
 
 from exporter.registry import ProcessorRegistry, ClientDetails
 
 
 class MessageProcessor:
-    def __init__(self, registry: CollectorRegistry, redis_client: redis.Redis):
+    def __init__(self, registry: CollectorRegistry, db_pool: ConnectionPool):
         self.rx_rssi_gauge = None
         self.channel_counter = None
         self.packet_id_counter = None
@@ -28,7 +26,7 @@ class MessageProcessor:
         self.destination_message_type_counter = None
         self.source_message_type_counter = None
         self.registry = registry
-        self.redis_client = redis_client
+        self.db_pool = db_pool
         self.init_metrics()
         self.processor_registry = ProcessorRegistry()
 
@@ -137,12 +135,14 @@ class MessageProcessor:
         port_num = int(mesh_packet.decoded.portnum)
         payload = mesh_packet.decoded.payload
 
-        source_client_details = self._get_client_details(getattr(mesh_packet, 'from'))
+        source_node_id = getattr(mesh_packet, 'from')
+        source_client_details = self._get_client_details(source_node_id)
         if os.getenv('MESH_HIDE_SOURCE_DATA', 'false') == 'true':
             source_client_details = ClientDetails(node_id=source_client_details.node_id, short_name='Hidden',
                                                   long_name='Hidden')
 
-        destination_client_details = self._get_client_details(getattr(mesh_packet, 'to'))
+        destination_node_id = getattr(mesh_packet, 'to')
+        destination_client_details = self._get_client_details(destination_node_id)
         if os.getenv('MESH_HIDE_DESTINATION_DATA', 'false') == 'true':
             destination_client_details = ClientDetails(node_id=destination_client_details.node_id, short_name='Hidden',
                                                        long_name='Hidden')
@@ -152,7 +152,7 @@ class MessageProcessor:
 
         self.process_simple_packet_details(destination_client_details, mesh_packet, port_num, source_client_details)
 
-        processor = ProcessorRegistry.get_processor(port_num)(self.registry, self.redis_client)
+        processor = ProcessorRegistry.get_processor(port_num)(self.registry, self.db_pool)
         processor.process(payload, client_details=source_client_details)
 
     def get_port_name_from_portnum(self, port_num):
@@ -237,16 +237,33 @@ class MessageProcessor:
             destination_id=destination_client_details.node_id
         ).set(mesh_packet.rx_rssi)
 
-    def _get_client_details(self, node_id: str) -> ClientDetails:
-        user_details_json = self.redis_client.get(f"node:{node_id}")
-        if user_details_json is not None:
-            # Decode the JSON string to a Python dictionary
-            user_details = json.loads(user_details_json)
-            return ClientDetails(node_id=node_id,
-                                 short_name=user_details.get('short_name', 'Unknown'),
-                                 long_name=user_details.get('long_name', 'Unknown'),
-                                 hardware_model=user_details.get('hardware_model', HardwareModel.UNSET),
-                                 role=user_details.get('role', Config.DeviceConfig.Role.ValueType),
-                                 )
+    def _get_client_details(self, node_id: int) -> ClientDetails:
+        node_id_str = str(node_id)  # Convert the integer to a string
+        with self.db_pool.connection() as conn:
+            with conn.cursor() as cur:
+                # First, try to select the existing record
+                cur.execute("""
+                    SELECT node_id, short_name, long_name, hardware_model, role 
+                    FROM client_details 
+                    WHERE node_id = %s;
+                """, (node_id_str,))
+                result = cur.fetchone()
 
-        return ClientDetails(node_id=node_id)
+                if not result:
+                    # If the client is not found, insert a new record
+                    cur.execute("""
+                        INSERT INTO client_details (node_id, short_name, long_name, hardware_model, role)
+                        VALUES (%s, %s, %s, %s, %s)
+                        RETURNING node_id, short_name, long_name, hardware_model, role;
+                    """, (node_id_str, 'Unknown', 'Unknown', HardwareModel.UNSET, None))
+                    conn.commit()
+                    result = cur.fetchone()
+
+        # At this point, we should always have a result, either from SELECT or INSERT
+        return ClientDetails(
+            node_id=result[0],
+            short_name=result[1],
+            long_name=result[2],
+            hardware_model=result[3],
+            role=result[4]
+        )
