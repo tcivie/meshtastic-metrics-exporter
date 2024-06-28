@@ -7,8 +7,8 @@ start creating dashboards immediately.
 ## Features
 
 - Exports a comprehensive set of metrics from an MQTT server to Prometheus.
-- Comes with a Grafana dashboard configured to connect to both Prometheus and Redis data sources.
-- Stores node details (ID, short/long name, hardware details, and client type) in a Redis server, which is also part of
+- Comes with a Grafana dashboard configured to connect to both Prometheus and Postgres data sources.
+- Stores node details (ID, short/long name, hardware details, and client type) in a Postgres server, which is also part of
   the package.
 - Configuration via a `.env` file.
 
