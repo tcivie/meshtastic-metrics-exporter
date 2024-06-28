@@ -1,9 +1,12 @@
+import base64
 import json
 import os
 
 import redis
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from meshtastic.config_pb2 import Config
-from meshtastic.mesh_pb2 import MeshPacket, HardwareModel
+from meshtastic.mesh_pb2 import MeshPacket, HardwareModel, Data
 from meshtastic.portnums_pb2 import PortNum
 from prometheus_client import CollectorRegistry, Counter, Histogram, Gauge
 
@@ -116,6 +119,21 @@ class MessageProcessor:
         )
 
     def process(self, mesh_packet: MeshPacket):
+        if getattr(mesh_packet, 'encrypted'):
+            key_bytes = base64.b64decode(os.getenv('MQTT_SERVER_KEY', '1PG7OiApB1nwvP+rz05pAQ==').encode('ascii'))
+            nonce_packet_id = getattr(mesh_packet, "id").to_bytes(8, "little")
+            nonce_from_node = getattr(mesh_packet, "from").to_bytes(8, "little")
+
+            # Put both parts into a single byte array.
+            nonce = nonce_packet_id + nonce_from_node
+
+            cipher = Cipher(algorithms.AES(key_bytes), modes.CTR(nonce), backend=default_backend())
+            decryptor = cipher.decryptor()
+            decrypted_bytes = decryptor.update(getattr(mesh_packet, "encrypted")) + decryptor.finalize()
+
+            data = Data()
+            data.ParseFromString(decrypted_bytes)
+            mesh_packet.decoded.CopyFrom(data)
         port_num = int(mesh_packet.decoded.portnum)
         payload = mesh_packet.decoded.payload
 
