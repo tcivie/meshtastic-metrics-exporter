@@ -109,6 +109,8 @@ MESH_HIDE_DESTINATION_DATA=false
 FILTERED_PORTS=0
 ## Hide message content in the TEXT_MESSAGE_APP packets (default: true) (Currently we only log message length, if we hide then all messages would have the same length)
 HIDE_MESSAGE=false
+## MQTT server Key for decoding messages
+MQTT_SERVER_KEY=1PG7OiApB1nwvP+rz05pAQ==
 ```
 
 ## Running the Project
