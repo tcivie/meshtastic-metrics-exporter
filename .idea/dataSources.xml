@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
-    <data-source source="LOCAL" name="0@localhost" uuid="6480dc2d-498f-4da7-af1b-7fe2ca0790fa">
-      <driver-ref>redis</driver-ref>
+    <data-source source="LOCAL" name="meshtastic@localhost" uuid="9c9a791a-fbdc-4e29-933b-a615eaa80a3c">
+      <driver-ref>postgresql</driver-ref>
       <synchronize>true</synchronize>
-      <jdbc-driver>jdbc.RedisDriver</jdbc-driver>
-      <jdbc-url>jdbc:redis://localhost:6379/0</jdbc-url>
+      <jdbc-driver>org.postgresql.Driver</jdbc-driver>
+      <jdbc-url>jdbc:postgresql://localhost:5432/meshtastic</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
   </component>
