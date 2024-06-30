@@ -18,49 +18,49 @@ The following is a list of metrics exported by the `meshtastic-metrics-exporter`
 
 | Metric Name                       | Description                                                                  | Type      | Labels                               |
 |-----------------------------------|------------------------------------------------------------------------------|-----------|--------------------------------------|
-| text_message_app_length           | Length of text messages processed by the app                                 | Histogram | client_id                            |
-| device_latitude                   | Device latitude                                                              | Gauge     | client_id                            |
-| device_longitude                  | Device longitude                                                             | Gauge     | client_id                            |
-| device_altitude                   | Device altitude                                                              | Gauge     | client_id                            |
-| device_position_precision         | Device position precision                                                    | Gauge     | client_id                            |
-| telemetry_app_ch1_voltage         | Voltage measured by the device on channel 1                                  | Gauge     | client_id                            |
-| telemetry_app_ch1_current         | Current measured by the device on channel 1                                  | Gauge     | client_id                            |
-| telemetry_app_ch2_voltage         | Voltage measured by the device on channel 2                                  | Gauge     | client_id                            |
-| telemetry_app_ch2_current         | Current measured by the device on channel 2                                  | Gauge     | client_id                            |
-| telemetry_app_ch3_voltage         | Voltage measured by the device on channel 3                                  | Gauge     | client_id                            |
-| telemetry_app_ch3_current         | Current measured by the device on channel 3                                  | Gauge     | client_id                            |
-| telemetry_app_pm10_standard       | Concentration Units Standard PM1.0                                           | Gauge     | client_id                            |
-| telemetry_app_pm25_standard       | Concentration Units Standard PM2.5                                           | Gauge     | client_id                            |
-| telemetry_app_pm100_standard      | Concentration Units Standard PM10.0                                          | Gauge     | client_id                            |
-| telemetry_app_pm10_environmental  | Concentration Units Environmental PM1.0                                      | Gauge     | client_id                            |
-| telemetry_app_pm25_environmental  | Concentration Units Environmental PM2.5                                      | Gauge     | client_id                            |
-| telemetry_app_pm100_environmental | Concentration Units Environmental PM10.0                                     | Gauge     | client_id                            |
-| telemetry_app_particles_03um      | 0.3um Particle Count                                                         | Gauge     | client_id                            |
-| telemetry_app_particles_05um      | 0.5um Particle Count                                                         | Gauge     | client_id                            |
-| telemetry_app_particles_10um      | 1.0um Particle Count                                                         | Gauge     | client_id                            |
-| telemetry_app_particles_25um      | 2.5um Particle Count                                                         | Gauge     | client_id                            |
-| telemetry_app_particles_50um      | 5.0um Particle Count                                                         | Gauge     | client_id                            |
-| telemetry_app_particles_100um     | 10.0um Particle Count                                                        | Gauge     | client_id                            |
-| telemetry_app_temperature         | Temperature measured by the device                                           | Gauge     | client_id                            |
-| telemetry_app_relative_humidity   | Relative humidity percent measured by the device                             | Gauge     | client_id                            |
-| telemetry_app_barometric_pressure | Barometric pressure in hPA measured by the device                            | Gauge     | client_id                            |
-| telemetry_app_gas_resistance      | Gas resistance in MOhm measured by the device                                | Gauge     | client_id                            |
-| telemetry_app_iaq                 | IAQ value measured by the device (0-500)                                     | Gauge     | client_id                            |
-| telemetry_app_distance            | Distance measured by the device in mm                                        | Gauge     | client_id                            |
-| telemetry_app_lux                 | Ambient light measured by the device in Lux                                  | Gauge     | client_id                            |
-| telemetry_app_white_lux           | White light measured by the device in Lux                                    | Gauge     | client_id                            |
-| telemetry_app_ir_lux              | Infrared light measured by the device in Lux                                 | Gauge     | client_id                            |
-| telemetry_app_uv_lux              | Ultraviolet light measured by the device in Lux                              | Gauge     | client_id                            |
-| telemetry_app_wind_direction      | Wind direction in degrees measured by the device                             | Gauge     | client_id                            |
-| telemetry_app_wind_speed          | Wind speed in m/s measured by the device                                     | Gauge     | client_id                            |
-| telemetry_app_weight              | Weight in KG measured by the device                                          | Gauge     | client_id                            |
-| telemetry_app_battery_level       | Battery level of the device (0-100, >100 means powered)                      | Gauge     | client_id                            |
-| telemetry_app_voltage             | Voltage measured by the device                                               | Gauge     | client_id                            |
-| telemetry_app_channel_utilization | Utilization for the current channel, including well-formed TX, RX, and noise | Gauge     | client_id                            |
-| telemetry_app_air_util_tx         | Percent of airtime for transmission used within the last hour                | Gauge     | client_id                            |
-| telemetry_app_uptime_seconds      | How long the device has been running since the last reboot (in seconds)      | Counter   | client_id                            |
-| route_length                      | Number of nodes in the route                                                 | Counter   | client_id                            |
-| route_response                    | Number of responses to route discovery                                       | Counter   | client_id, response_type             |
+| text_message_app_length           | Length of text messages processed by the app                                 | Histogram | node_id                              |
+| device_latitude                   | Device latitude                                                              | Gauge     | node_id                              |
+| device_longitude                  | Device longitude                                                             | Gauge     | node_id                              |
+| device_altitude                   | Device altitude                                                              | Gauge     | node_id                              |
+| device_position_precision         | Device position precision                                                    | Gauge     | node_id                              |
+| telemetry_app_ch1_voltage         | Voltage measured by the device on channel 1                                  | Gauge     | node_id                              |
+| telemetry_app_ch1_current         | Current measured by the device on channel 1                                  | Gauge     | node_id                              |
+| telemetry_app_ch2_voltage         | Voltage measured by the device on channel 2                                  | Gauge     | node_id                              |
+| telemetry_app_ch2_current         | Current measured by the device on channel 2                                  | Gauge     | node_id                              |
+| telemetry_app_ch3_voltage         | Voltage measured by the device on channel 3                                  | Gauge     | node_id                              |
+| telemetry_app_ch3_current         | Current measured by the device on channel 3                                  | Gauge     | node_id                              |
+| telemetry_app_pm10_standard       | Concentration Units Standard PM1.0                                           | Gauge     | node_id                              |
+| telemetry_app_pm25_standard       | Concentration Units Standard PM2.5                                           | Gauge     | node_id                              |
+| telemetry_app_pm100_standard      | Concentration Units Standard PM10.0                                          | Gauge     | node_id                              |
+| telemetry_app_pm10_environmental  | Concentration Units Environmental PM1.0                                      | Gauge     | node_id                              |
+| telemetry_app_pm25_environmental  | Concentration Units Environmental PM2.5                                      | Gauge     | node_id                              |
+| telemetry_app_pm100_environmental | Concentration Units Environmental PM10.0                                     | Gauge     | node_id                              |
+| telemetry_app_particles_03um      | 0.3um Particle Count                                                         | Gauge     | node_id                              |
+| telemetry_app_particles_05um      | 0.5um Particle Count                                                         | Gauge     | node_id                              |
+| telemetry_app_particles_10um      | 1.0um Particle Count                                                         | Gauge     | node_id                              |
+| telemetry_app_particles_25um      | 2.5um Particle Count                                                         | Gauge     | node_id                              |
+| telemetry_app_particles_50um      | 5.0um Particle Count                                                         | Gauge     | node_id                              |
+| telemetry_app_particles_100um     | 10.0um Particle Count                                                        | Gauge     | node_id                              |
+| telemetry_app_temperature         | Temperature measured by the device                                           | Gauge     | node_id                              |
+| telemetry_app_relative_humidity   | Relative humidity percent measured by the device                             | Gauge     | node_id                              |
+| telemetry_app_barometric_pressure | Barometric pressure in hPA measured by the device                            | Gauge     | node_id                              |
+| telemetry_app_gas_resistance      | Gas resistance in MOhm measured by the device                                | Gauge     | node_id                              |
+| telemetry_app_iaq                 | IAQ value measured by the device (0-500)                                     | Gauge     | node_id                              |
+| telemetry_app_distance            | Distance measured by the device in mm                                        | Gauge     | node_id                              |
+| telemetry_app_lux                 | Ambient light measured by the device in Lux                                  | Gauge     | node_id                              |
+| telemetry_app_white_lux           | White light measured by the device in Lux                                    | Gauge     | node_id                              |
+| telemetry_app_ir_lux              | Infrared light measured by the device in Lux                                 | Gauge     | node_id                              |
+| telemetry_app_uv_lux              | Ultraviolet light measured by the device in Lux                              | Gauge     | node_id                              |
+| telemetry_app_wind_direction      | Wind direction in degrees measured by the device                             | Gauge     | node_id                              |
+| telemetry_app_wind_speed          | Wind speed in m/s measured by the device                                     | Gauge     | node_id                              |
+| telemetry_app_weight              | Weight in KG measured by the device                                          | Gauge     | node_id                              |
+| telemetry_app_battery_level       | Battery level of the device (0-100, >100 means powered)                      | Gauge     | node_id                              |
+| telemetry_app_voltage             | Voltage measured by the device                                               | Gauge     | node_id                              |
+| telemetry_app_channel_utilization | Utilization for the current channel, including well-formed TX, RX, and noise | Gauge     | node_id                              |
+| telemetry_app_air_util_tx         | Percent of airtime for transmission used within the last hour                | Gauge     | node_id                              |
+| telemetry_app_uptime_seconds      | How long the device has been running since the last reboot (in seconds)      | Counter   | node_id                              |
+| route_length                      | Number of nodes in the route                                                 | Counter   | node_id                              |
+| route_response                    | Number of responses to route discovery                                       | Counter   | node_id, response_type               |
 | mesh_packet_source_types          | Types of mesh packets processed by source                                    | Counter   | source_id, portnum                   |
 | mesh_packet_destination_types     | Types of mesh packets processed by destination                               | Counter   | destination_id, portnum              |
 | mesh_packet_total                 | Total number of mesh packets processed                                       | Counter   | source_id, destination_id            |
@@ -81,11 +81,8 @@ The project uses a `.env` file for configuration. Here is an example of the conf
 ```dotenv
 # Description: Environment variables for the application
 
-# Redis connection details
-REDIS_HOST=redis
-REDIS_PORT=6379
-REDIS_DB=0
-REDIS_PASSWORD=
+# Postgres connection details
+DATABASE_URL=postgres://postgres:postgres@postgres:5432/meshtastic
 
 # Prometheus connection details
 PROMETHEUS_COLLECTOR_PORT=9464
@@ -121,12 +118,13 @@ To run the project, simply use Docker Compose:
 docker-compose up --build
 ```
 
-This command will build and start all the necessary services, including the MQTT server, Prometheus server, Redis
+This command will build and start all the necessary services, including the MQTT server, Prometheus server, Postgres
 server, and Grafana.
 
 ## Grafana Dashboard
 
-The project includes a Grafana dashboard pre-configured to connect to both the Prometheus and Redis data sources. This
+The project includes a Grafana dashboard pre-configured to connect to both the Prometheus and Postgres data sources.
+This
 allows you to start creating and customizing your dashboards right away.
 
 ## Contributing

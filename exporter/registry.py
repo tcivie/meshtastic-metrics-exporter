@@ -31,6 +31,12 @@ class _Metrics:
             self._init_metrics()
             self.initialized = True  # Attribute to indicate initialization
 
+    @staticmethod
+    def _get_common_labels():
+        return [
+            'node_id', 'short_name', 'long_name', 'hardware_model', 'role'
+        ]
+
     def _init_metrics(self):  # TODO: Go over the metrics and rethink some of them to be more like the longtitute and
         # latitude - The values should represent something and we shouldn't just label stuff. Also, the labels should
         # be less used looked upon like keys for the data
@@ -47,7 +53,7 @@ class _Metrics:
         self.message_length_histogram = Histogram(
             'text_message_app_length',
             'Length of text messages processed by the app',
-            ['client_id'],
+            self._get_common_labels(),
             registry=self._registry
         )
 
@@ -55,25 +61,25 @@ class _Metrics:
         self.device_latitude_gauge = Gauge(
             'device_latitude',
             'Device latitude',
-            ['client_id'],
+            self._get_common_labels(),
             registry=self._registry
         )
         self.device_longitude_gauge = Gauge(
             'device_longitude',
             'Device longitude',
-            ['client_id'],
+            self._get_common_labels(),
             registry=self._registry
         )
         self.device_altitude_gauge = Gauge(
             'device_altitude',
             'Device altitude',
-            ['client_id'],
+            self._get_common_labels(),
             registry=self._registry
         )
         self.device_position_precision_gauge = Gauge(
             'device_position_precision',
             'Device position precision',
-            ['client_id'],
+            self._get_common_labels(),
             registry=self._registry
         )
 
@@ -81,42 +87,42 @@ class _Metrics:
         self.ch1_voltage_gauge = Gauge(
             'telemetry_app_ch1_voltage',
             'Voltage measured by the device on channel 1',
-            ['client_id'],
+            self._get_common_labels(),
             registry=self._registry
         )
 
         self.ch1_current_gauge = Gauge(
             'telemetry_app_ch1_current',
             'Current measured by the device on channel 1',
-            ['client_id'],
+            self._get_common_labels(),
             registry=self._registry
         )
 
         self.ch2_voltage_gauge = Gauge(
             'telemetry_app_ch2_voltage',
             'Voltage measured by the device on channel 2',
-            ['client_id'],
+            self._get_common_labels(),
             registry=self._registry
         )
 
         self.ch2_current_gauge = Gauge(
             'telemetry_app_ch2_current',
             'Current measured by the device on channel 2',
-            ['client_id'],
+            self._get_common_labels(),
             registry=self._registry
         )
 
         self.ch3_voltage_gauge = Gauge(
             'telemetry_app_ch3_voltage',
             'Voltage measured by the device on channel 3',
-            ['client_id'],
+            self._get_common_labels(),
             registry=self._registry
         )
 
         self.ch3_current_gauge = Gauge(
             'telemetry_app_ch3_current',
             'Current measured by the device on channel 3',
-            ['client_id'],
+            self._get_common_labels(),
             registry=self._registry
         )
 
@@ -124,84 +130,84 @@ class _Metrics:
         self.pm10_standard_gauge = Gauge(
             'telemetry_app_pm10_standard',
             'Concentration Units Standard PM1.0',
-            ['client_id'],
+            self._get_common_labels(),
             registry=self._registry
         )
 
         self.pm25_standard_gauge = Gauge(
             'telemetry_app_pm25_standard',
             'Concentration Units Standard PM2.5',
-            ['client_id'],
+            self._get_common_labels(),
             registry=self._registry
         )
 
         self.pm100_standard_gauge = Gauge(
             'telemetry_app_pm100_standard',
             'Concentration Units Standard PM10.0',
-            ['client_id'],
+            self._get_common_labels(),
             registry=self._registry
         )
 
         self.pm10_environmental_gauge = Gauge(
             'telemetry_app_pm10_environmental',
             'Concentration Units Environmental PM1.0',
-            ['client_id'],
+            self._get_common_labels(),
             registry=self._registry
         )
 
         self.pm25_environmental_gauge = Gauge(
             'telemetry_app_pm25_environmental',
             'Concentration Units Environmental PM2.5',
-            ['client_id'],
+            self._get_common_labels(),
             registry=self._registry
         )
 
         self.pm100_environmental_gauge = Gauge(
             'telemetry_app_pm100_environmental',
             'Concentration Units Environmental PM10.0',
-            ['client_id'],
+            self._get_common_labels(),
             registry=self._registry
         )
 
         self.particles_03um_gauge = Gauge(
             'telemetry_app_particles_03um',
             '0.3um Particle Count',
-            ['client_id'],
+            self._get_common_labels(),
             registry=self._registry
         )
 
         self.particles_05um_gauge = Gauge(
             'telemetry_app_particles_05um',
             '0.5um Particle Count',
-            ['client_id'],
+            self._get_common_labels(),
             registry=self._registry
         )
 
         self.particles_10um_gauge = Gauge(
             'telemetry_app_particles_10um',
             '1.0um Particle Count',
-            ['client_id'],
+            self._get_common_labels(),
             registry=self._registry
         )
 
         self.particles_25um_gauge = Gauge(
             'telemetry_app_particles_25um',
             '2.5um Particle Count',
-            ['client_id'],
+            self._get_common_labels(),
             registry=self._registry
         )
 
         self.particles_50um_gauge = Gauge(
             'telemetry_app_particles_50um',
             '5.0um Particle Count',
-            ['client_id'],
+            self._get_common_labels(),
             registry=self._registry
         )
 
         self.particles_100um_gauge = Gauge(
             'telemetry_app_particles_100um',
             '10.0um Particle Count',
-            ['client_id'],
+            self._get_common_labels(),
             registry=self._registry
         )
 
@@ -210,91 +216,91 @@ class _Metrics:
         self.temperature_gauge = Gauge(
             'telemetry_app_temperature',
             'Temperature measured by the device',
-            ['client_id'],
+            self._get_common_labels(),
             registry=self._registry
         )
 
         self.relative_humidity_gauge = Gauge(
             'telemetry_app_relative_humidity',
             'Relative humidity percent measured by the device',
-            ['client_id'],
+            self._get_common_labels(),
             registry=self._registry
         )
 
         self.barometric_pressure_gauge = Gauge(
             'telemetry_app_barometric_pressure',
             'Barometric pressure in hPA measured by the device',
-            ['client_id'],
+            self._get_common_labels(),
             registry=self._registry
         )
 
         self.gas_resistance_gauge = Gauge(
             'telemetry_app_gas_resistance',
             'Gas resistance in MOhm measured by the device',
-            ['client_id'],
+            self._get_common_labels(),
             registry=self._registry
         )
 
         self.iaq_gauge = Gauge(
             'telemetry_app_iaq',
             'IAQ value measured by the device (0-500)',
-            ['client_id'],
+            self._get_common_labels(),
             registry=self._registry
         )
 
         self.distance_gauge = Gauge(
             'telemetry_app_distance',
             'Distance measured by the device in mm',
-            ['client_id'],
+            self._get_common_labels(),
             registry=self._registry
         )
 
         self.lux_gauge = Gauge(
             'telemetry_app_lux',
             'Ambient light measured by the device in Lux',
-            ['client_id'],
+            self._get_common_labels(),
             registry=self._registry
         )
 
         self.white_lux_gauge = Gauge(
             'telemetry_app_white_lux',
             'White light measured by the device in Lux',
-            ['client_id'],
+            self._get_common_labels(),
             registry=self._registry
         )
 
         self.ir_lux_gauge = Gauge(
             'telemetry_app_ir_lux',
             'Infrared light measured by the device in Lux',
-            ['client_id'],
+            self._get_common_labels(),
             registry=self._registry
         )
 
         self.uv_lux_gauge = Gauge(
             'telemetry_app_uv_lux',
             'Ultraviolet light measured by the device in Lux',
-            ['client_id'],
+            self._get_common_labels(),
             registry=self._registry
         )
 
         self.wind_direction_gauge = Gauge(
             'telemetry_app_wind_direction',
             'Wind direction in degrees measured by the device',
-            ['client_id'],
+            self._get_common_labels(),
             registry=self._registry
         )
 
         self.wind_speed_gauge = Gauge(
             'telemetry_app_wind_speed',
             'Wind speed in m/s measured by the device',
-            ['client_id'],
+            self._get_common_labels(),
             registry=self._registry
         )
 
         self.weight_gauge = Gauge(
             'telemetry_app_weight',
             'Weight in KG measured by the device',
-            ['client_id'],
+            self._get_common_labels(),
             registry=self._registry
         )
 
@@ -302,14 +308,14 @@ class _Metrics:
         self.battery_level_gauge = Gauge(
             'telemetry_app_battery_level',
             'Battery level of the device (0-100, >100 means powered)',
-            ['client_id'],
+            self._get_common_labels(),
             registry=self._registry
         )
 
         self.voltage_gauge = Gauge(
             'telemetry_app_voltage',
             'Voltage measured by the device',
-            ['client_id'],
+            self._get_common_labels(),
             registry=self._registry
         )
 
@@ -317,14 +323,14 @@ class _Metrics:
         self.channel_utilization_gauge = Gauge(
             'telemetry_app_channel_utilization',
             'Utilization for the current channel, including well-formed TX, RX, and noise',
-            ['client_id'],
+            self._get_common_labels(),
             registry=self._registry
         )
 
         self.air_util_tx_gauge = Gauge(
             'telemetry_app_air_util_tx',
             'Percent of airtime for transmission used within the last hour',
-            ['client_id'],
+            self._get_common_labels(),
             registry=self._registry
         )
 
@@ -332,7 +338,7 @@ class _Metrics:
         self.uptime_seconds_counter = Counter(
             'telemetry_app_uptime_seconds',
             'How long the device has been running since the last reboot (in seconds)',
-            ['client_id'],
+            self._get_common_labels(),
             registry=self._registry
         )
 
@@ -340,13 +346,13 @@ class _Metrics:
         self.route_discovery_counter = Counter(
             'route_length',
             'Number of nodes in the route',
-            ['client_id'],
+            self._get_common_labels(),
             registry=self._registry
         )
         self.route_discovery_response_counter = Counter(
             'route_response',
             'Number of responses to route discovery',
-            ['client_id', 'response_type'],
+            self._get_common_labels() + ['response_type'],
             registry=self._registry
         )
 
@@ -432,7 +438,7 @@ class TextMessageAppProcessor(Processor):
         if os.getenv('HIDE_MESSAGE', 'true') == 'true':
             message = 'Hidden'
         self.metrics.message_length_histogram.labels(
-            client_id=client_details.node_id
+            **client_details.to_dict()
         ).observe(len(message))
 
 
@@ -452,16 +458,16 @@ class PositionAppProcessor(Processor):
         position = Position()
         position.ParseFromString(payload)
         self.metrics.device_latitude_gauge.labels(
-            client_id=client_details.node_id,
+            **client_details.to_dict()
         ).set(position.latitude_i)
         self.metrics.device_longitude_gauge.labels(
-            client_id=client_details.node_id,
+            **client_details.to_dict()
         ).set(position.longitude_i)
         self.metrics.device_altitude_gauge.labels(
-            client_id=client_details.node_id,
+            **client_details.to_dict()
         ).set(position.altitude)
         self.metrics.device_position_precision_gauge.labels(
-            client_id=client_details.node_id,
+            **client_details.to_dict()
         ).set(position.precision_bits)
         pass
 
@@ -519,7 +525,6 @@ class NodeInfoAppProcessor(Processor):
         self.execute_db_operation(db_operation)
 
 
-
 @ProcessorRegistry.register_processor(PortNum.ROUTING_APP)
 class RoutingAppProcessor(Processor):
     def process(self, payload: bytes, client_details: ClientDetails):
@@ -527,11 +532,12 @@ class RoutingAppProcessor(Processor):
         routing = Routing()
         routing.ParseFromString(payload)
         self.metrics.route_discovery_response_counter.labels(
-            client_id=client_details.node_id,
+            **client_details.to_dict(),
             response_type=self.get_error_name_from_routing(routing.error_reason)
         ).inc()
 
-    def get_error_name_from_routing(self, error_code):
+    @staticmethod
+    def get_error_name_from_routing(error_code):
         for name, value in Routing.Error.__dict__.items():
             if isinstance(value, int) and value == error_code:
                 return name
@@ -637,153 +643,153 @@ class TelemetryAppProcessor(Processor):
         if telemetry.HasField('device_metrics'):
             device_metrics: DeviceMetrics = telemetry.device_metrics
             self.metrics.battery_level_gauge.labels(
-                client_id=client_details.node_id,
+                **client_details.to_dict()
             ).set(getattr(device_metrics, 'battery_level', 0))
 
             self.metrics.voltage_gauge.labels(
-                client_id=client_details.node_id,
+                **client_details.to_dict()
             ).set(getattr(device_metrics, 'voltage', 0))
 
             self.metrics.channel_utilization_gauge.labels(
-                client_id=client_details.node_id,
+                **client_details.to_dict()
             ).set(getattr(device_metrics, 'channel_utilization', 0))
 
             self.metrics.air_util_tx_gauge.labels(
-                client_id=client_details.node_id,
+                **client_details.to_dict()
             ).set(getattr(device_metrics, 'air_util_tx', 0))
 
             self.metrics.uptime_seconds_counter.labels(
-                client_id=client_details.node_id,
+                **client_details.to_dict()
             ).inc(getattr(device_metrics, 'uptime_seconds', 0))
 
         if telemetry.HasField('environment_metrics'):
             environment_metrics: EnvironmentMetrics = telemetry.environment_metrics
             self.metrics.temperature_gauge.labels(
-                client_id=client_details.node_id,
+                **client_details.to_dict()
             ).set(getattr(environment_metrics, 'temperature', 0))
 
             self.metrics.relative_humidity_gauge.labels(
-                client_id=client_details.node_id,
+                **client_details.to_dict()
             ).set(getattr(environment_metrics, 'relative_humidity', 0))
 
             self.metrics.barometric_pressure_gauge.labels(
-                client_id=client_details.node_id,
+                **client_details.to_dict()
             ).set(getattr(environment_metrics, 'barometric_pressure', 0))
 
             self.metrics.gas_resistance_gauge.labels(
-                client_id=client_details.node_id,
+                **client_details.to_dict()
             ).set(getattr(environment_metrics, 'gas_resistance', 0))
 
             self.metrics.iaq_gauge.labels(
-                client_id=client_details.node_id,
+                **client_details.to_dict()
             ).set(getattr(environment_metrics, 'iaq', 0))
 
             self.metrics.distance_gauge.labels(
-                client_id=client_details.node_id,
+                **client_details.to_dict()
             ).set(getattr(environment_metrics, 'distance', 0))
 
             self.metrics.lux_gauge.labels(
-                client_id=client_details.node_id,
+                **client_details.to_dict()
             ).set(getattr(environment_metrics, 'lux', 0))
 
             self.metrics.white_lux_gauge.labels(
-                client_id=client_details.node_id,
+                **client_details.to_dict()
             ).set(getattr(environment_metrics, 'white_lux', 0))
 
             self.metrics.ir_lux_gauge.labels(
-                client_id=client_details.node_id,
+                **client_details.to_dict()
             ).set(getattr(environment_metrics, 'ir_lux', 0))
 
             self.metrics.uv_lux_gauge.labels(
-                client_id=client_details.node_id,
+                **client_details.to_dict()
             ).set(getattr(environment_metrics, 'uv_lux', 0))
 
             self.metrics.wind_direction_gauge.labels(
-                client_id=client_details.node_id,
+                **client_details.to_dict()
             ).set(getattr(environment_metrics, 'wind_direction', 0))
 
             self.metrics.wind_speed_gauge.labels(
-                client_id=client_details.node_id,
+                **client_details.to_dict()
             ).set(getattr(environment_metrics, 'wind_speed', 0))
 
             self.metrics.weight_gauge.labels(
-                client_id=client_details.node_id,
+                **client_details.to_dict()
             ).set(getattr(environment_metrics, 'weight', 0))
 
         if telemetry.HasField('air_quality_metrics'):
             air_quality_metrics: AirQualityMetrics = telemetry.air_quality_metrics
             self.metrics.pm10_standard_gauge.labels(
-                client_id=client_details.node_id,
+                **client_details.to_dict()
             ).set(getattr(air_quality_metrics, 'pm10_standard', 0))
 
             self.metrics.pm25_standard_gauge.labels(
-                client_id=client_details.node_id,
+                **client_details.to_dict()
             ).set(getattr(air_quality_metrics, 'pm25_standard', 0))
 
             self.metrics.pm100_standard_gauge.labels(
-                client_id=client_details.node_id,
+                **client_details.to_dict()
             ).set(getattr(air_quality_metrics, 'pm100_standard', 0))
 
             self.metrics.pm10_environmental_gauge.labels(
-                client_id=client_details.node_id,
+                **client_details.to_dict()
             ).set(getattr(air_quality_metrics, 'pm10_environmental', 0))
 
             self.metrics.pm25_environmental_gauge.labels(
-                client_id=client_details.node_id,
+                **client_details.to_dict()
             ).set(getattr(air_quality_metrics, 'pm25_environmental', 0))
 
             self.metrics.pm100_environmental_gauge.labels(
-                client_id=client_details.node_id,
+                **client_details.to_dict()
             ).set(getattr(air_quality_metrics, 'pm100_environmental', 0))
 
             self.metrics.particles_03um_gauge.labels(
-                client_id=client_details.node_id,
+                **client_details.to_dict()
             ).set(getattr(air_quality_metrics, 'particles_03um', 0))
 
             self.metrics.particles_05um_gauge.labels(
-                client_id=client_details.node_id,
+                **client_details.to_dict()
             ).set(getattr(air_quality_metrics, 'particles_05um', 0))
 
             self.metrics.particles_10um_gauge.labels(
-                client_id=client_details.node_id,
+                **client_details.to_dict()
             ).set(getattr(air_quality_metrics, 'particles_10um', 0))
 
             self.metrics.particles_25um_gauge.labels(
-                client_id=client_details.node_id,
+                **client_details.to_dict()
             ).set(getattr(air_quality_metrics, 'particles_25um', 0))
 
             self.metrics.particles_50um_gauge.labels(
-                client_id=client_details.node_id,
+                **client_details.to_dict()
             ).set(getattr(air_quality_metrics, 'particles_50um', 0))
 
             self.metrics.particles_100um_gauge.labels(
-                client_id=client_details.node_id,
+                **client_details.to_dict()
             ).set(getattr(air_quality_metrics, 'particles_100um', 0))
 
         if telemetry.HasField('power_metrics'):
             power_metrics: PowerMetrics = telemetry.power_metrics
             self.metrics.ch1_voltage_gauge.labels(
-                client_id=client_details.node_id,
+                **client_details.to_dict()
             ).set(getattr(power_metrics, 'ch1_voltage', 0))
 
             self.metrics.ch1_current_gauge.labels(
-                client_id=client_details.node_id,
+                **client_details.to_dict()
             ).set(getattr(power_metrics, 'ch1_current', 0))
 
             self.metrics.ch2_voltage_gauge.labels(
-                client_id=client_details.node_id,
+                **client_details.to_dict()
             ).set(getattr(power_metrics, 'ch2_voltage', 0))
 
             self.metrics.ch2_current_gauge.labels(
-                client_id=client_details.node_id,
+                **client_details.to_dict()
             ).set(getattr(power_metrics, 'ch2_current', 0))
 
             self.metrics.ch3_voltage_gauge.labels(
-                client_id=client_details.node_id,
+                **client_details.to_dict()
             ).set(getattr(power_metrics, 'ch3_voltage', 0))
 
             self.metrics.ch3_current_gauge.labels(
-                client_id=client_details.node_id,
+                **client_details.to_dict()
             ).set(getattr(power_metrics, 'ch3_current', 0))
 
 
@@ -810,7 +816,7 @@ class TraceRouteAppProcessor(Processor):
         if traceroute.route:
             route = traceroute.route
             self.metrics.route_discovery_counter.labels(
-                client_id=client_details.node_id
+                **client_details.to_dict()
             ).inc(len(route))
 
 
