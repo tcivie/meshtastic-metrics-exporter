@@ -1,1 +1,1 @@
-from .processors import MessageProcessor
+from .processor_base import MessageProcessor
