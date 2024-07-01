@@ -10,7 +10,7 @@ from paho.mqtt.enums import CallbackAPIVersion
 from prometheus_client import CollectorRegistry, start_http_server
 from psycopg_pool import ConnectionPool
 
-from exporter.processors import MessageProcessor
+from exporter.processor_base import MessageProcessor
 
 # Global connection pool
 connection_pool = None
