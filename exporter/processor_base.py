@@ -20,7 +20,7 @@ class MessageProcessor:
         self.hop_start_gauge = None
         self.via_mqtt_counter = None
         self.want_ack_counter = None
-        self.hop_limit_counter = None
+        self.hop_limit_gauge = None
         self.rx_snr_gauge = None
         self.rx_time_histogram = None
         self.total_packets_counter = None
@@ -73,7 +73,7 @@ class MessageProcessor:
             registry=self.registry
         )
         # Counter for hop_limit
-        self.hop_limit_counter = Counter(
+        self.hop_limit_gauge = Gauge(
             'mesh_packet_hop_limit',
             'Hop limit of mesh packets',
             common_labels,
@@ -205,9 +205,9 @@ class MessageProcessor:
             **common_labels
         ).set(mesh_packet.rx_snr)
 
-        self.hop_limit_counter.labels(
+        self.hop_limit_gauge.labels(
             **common_labels
-        ).inc(mesh_packet.hop_limit)
+        ).set(mesh_packet.hop_limit)
 
         if mesh_packet.want_ack:
             self.want_ack_counter.labels(
