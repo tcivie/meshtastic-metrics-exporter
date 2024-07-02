@@ -24,7 +24,7 @@ class ClientDetails:
     def get_role_name_from_role(role):
         descriptor = Config.DeviceConfig.Role.DESCRIPTOR
         for enum_value in descriptor.values:
-            if enum_value.number == role:
+            if enum_value.number == role or enum_value.name == role:
                 return enum_value.name
         return 'UNKNOWN_ROLE'
 
@@ -32,6 +32,6 @@ class ClientDetails:
     def get_hardware_model_name_from_code(hardware_model):
         descriptor = HardwareModel.DESCRIPTOR
         for enum_value in descriptor.values:
-            if enum_value.number == hardware_model:
+            if enum_value.number == hardware_model or enum_value.name == hardware_model:
                 return enum_value.name
         return 'UNKNOWN_HARDWARE_MODEL'
