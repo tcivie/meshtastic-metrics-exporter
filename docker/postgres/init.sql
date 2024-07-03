@@ -25,5 +25,6 @@ CREATE TABLE IF NOT EXISTS client_details
     short_name     VARCHAR,
     long_name      VARCHAR,
     hardware_model VARCHAR,
-    role           VARCHAR
+    role        VARCHAR,
+    mqtt_status VARCHAR default 'none'
 );

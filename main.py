@@ -35,11 +35,23 @@ def handle_connect(client, userdata, flags, reason_code, properties):
     client.subscribe(os.getenv('MQTT_TOPIC', 'msh/israel/#'))
 
 
+def update_node_status(node_number, status):
+    with connection_pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("INSERT INTO client_details (node_id, mqtt_status) VALUES (%s, %s)"
+                        "ON CONFLICT(node_id)"
+                        "DO UPDATE SET mqtt_status = %s", (node_number, status, status))
+            conn.commit()
+
+
 def handle_message(client, userdata, message):
     current_timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     print(f"Received message on topic '{message.topic}' at {current_timestamp}")
     if '/stat/' in message.topic:
-        print(f"Filtered out message from topic containing '/stat/': {message.topic}")
+        user_id = message.topic.split('/')[-1]  # Hexadecimal user ID
+        if user_id[0] == '!':
+            node_number = str(int(user_id[1:], 16))
+            update_node_status(node_number, message.payload.decode('utf-8'))
         return
 
     envelope = ServiceEnvelope()
