@@ -324,7 +324,7 @@ class _Metrics:
         )
 
     def _init_route_discovery_metrics(self):
-        self.route_discovery_counter = Counter(
+        self.route_discovery_gauge = Gauge(
             'route_length',
             'Number of nodes in the route',
             self._get_common_labels(),
