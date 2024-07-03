@@ -3,8 +3,14 @@ import os
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from meshtastic.mesh_pb2 import MeshPacket, Data, HardwareModel
-from meshtastic.portnums_pb2 import PortNum
+
+try:
+    from meshtastic.mesh_pb2 import MeshPacket, Data, HardwareModel
+    from meshtastic.portnums_pb2 import PortNum
+except ImportError:
+    from meshtastic.protobuf.mesh_pb2 import MeshPacket, Data, HardwareModel
+    from meshtastic.protobuf.portnums_pb2 import PortNum
+
 from prometheus_client import CollectorRegistry, Counter, Histogram, Gauge
 from psycopg_pool import ConnectionPool
 
