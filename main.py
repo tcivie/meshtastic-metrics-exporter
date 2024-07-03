@@ -4,8 +4,14 @@ from datetime import datetime
 
 import paho.mqtt.client as mqtt
 from dotenv import load_dotenv
-from meshtastic.mesh_pb2 import MeshPacket
-from meshtastic.mqtt_pb2 import ServiceEnvelope
+
+try:
+    from meshtastic.mesh_pb2 import MeshPacket
+    from meshtastic.mqtt_pb2 import ServiceEnvelope
+except ImportError:
+    from meshtastic.protobuf.mesh_pb2 import MeshPacket
+    from meshtastic.protobuf.mqtt_pb2 import ServiceEnvelope
+
 from paho.mqtt.enums import CallbackAPIVersion
 from prometheus_client import CollectorRegistry, start_http_server
 from psycopg_pool import ConnectionPool

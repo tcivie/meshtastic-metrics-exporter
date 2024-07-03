@@ -4,14 +4,28 @@ from venv import logger
 
 import psycopg
 import unishox2
-from meshtastic.admin_pb2 import AdminMessage
-from meshtastic.mesh_pb2 import Position, User, HardwareModel, Routing, Waypoint, RouteDiscovery, NeighborInfo
-from meshtastic.mqtt_pb2 import MapReport
-from meshtastic.paxcount_pb2 import Paxcount
-from meshtastic.portnums_pb2 import PortNum
-from meshtastic.remote_hardware_pb2 import HardwareMessage
-from meshtastic.storeforward_pb2 import StoreAndForward
-from meshtastic.telemetry_pb2 import Telemetry, DeviceMetrics, EnvironmentMetrics, AirQualityMetrics, PowerMetrics
+
+try:
+    from meshtastic.admin_pb2 import AdminMessage
+    from meshtastic.mesh_pb2 import Position, User, HardwareModel, Routing, Waypoint, RouteDiscovery, NeighborInfo
+    from meshtastic.mqtt_pb2 import MapReport
+    from meshtastic.paxcount_pb2 import Paxcount
+    from meshtastic.portnums_pb2 import PortNum
+    from meshtastic.remote_hardware_pb2 import HardwareMessage
+    from meshtastic.storeforward_pb2 import StoreAndForward
+    from meshtastic.telemetry_pb2 import Telemetry, DeviceMetrics, EnvironmentMetrics, AirQualityMetrics, PowerMetrics
+except ImportError:
+    from meshtastic.protobuf.admin_pb2 import AdminMessage
+    from meshtastic.protobuf.mesh_pb2 import Position, User, HardwareModel, Routing, Waypoint, RouteDiscovery, \
+        NeighborInfo
+    from meshtastic.protobuf.mqtt_pb2 import MapReport
+    from meshtastic.protobuf.paxcount_pb2 import Paxcount
+    from meshtastic.protobuf.portnums_pb2 import PortNum
+    from meshtastic.protobuf.remote_hardware_pb2 import HardwareMessage
+    from meshtastic.protobuf.storeforward_pb2 import StoreAndForward
+    from meshtastic.protobuf.telemetry_pb2 import Telemetry, DeviceMetrics, EnvironmentMetrics, AirQualityMetrics, \
+        PowerMetrics
+
 from prometheus_client import CollectorRegistry
 from psycopg_pool import ConnectionPool
 

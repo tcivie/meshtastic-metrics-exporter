@@ -1,5 +1,9 @@
-from meshtastic.config_pb2 import Config
-from meshtastic.mesh_pb2 import HardwareModel
+try:
+    from meshtastic.config_pb2 import Config
+    from meshtastic.mesh_pb2 import HardwareModel
+except ImportError:
+    from meshtastic.protobuf.config_pb2 import Config
+    from meshtastic.protobuf.mesh_pb2 import HardwareModel
 
 
 class ClientDetails:
