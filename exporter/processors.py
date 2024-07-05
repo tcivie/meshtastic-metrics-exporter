@@ -504,11 +504,21 @@ class NeighborInfoAppProcessor(Processor):
 
             for neighbor in neighbor_info.neighbors:
                 cur.execute("""
-                    INSERT INTO node_neighbors (node_id, neighbor_id, snr)
-                    VALUES (%s, %s, %s)
-                    ON CONFLICT (node_id, neighbor_id) 
-                    DO UPDATE SET snr = EXCLUDED.snr
-                """, (client_details.node_id, str(neighbor.node_id), float(neighbor.snr)))
+                    WITH upsert AS (
+                        INSERT INTO node_neighbors (node_id, neighbor_id, snr)
+                        VALUES (%s, %s, %s)
+                        ON CONFLICT (node_id, neighbor_id)
+                        DO UPDATE SET snr = EXCLUDED.snr
+                        RETURNING node_id, neighbor_id
+                    )
+                    INSERT INTO client_details (node_id)
+                    SELECT node_id FROM upsert
+                    WHERE NOT EXISTS (SELECT 1 FROM client_details WHERE node_id = upsert.node_id)
+                    UNION
+                    SELECT neighbor_id FROM upsert
+                    WHERE NOT EXISTS (SELECT 1 FROM client_details WHERE node_id = upsert.neighbor_id)
+                    ON CONFLICT (node_id) DO NOTHING;
+                """, (str(client_details.node_id), str(neighbor.node_id), float(neighbor.snr)))
 
             conn.commit()
 

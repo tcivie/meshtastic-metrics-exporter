@@ -45,10 +45,8 @@ CREATE TABLE IF NOT EXISTS node_neighbors
     neighbor_id VARCHAR,
     snr         FLOAT,
     FOREIGN KEY (node_id) REFERENCES client_details (node_id),
-    FOREIGN KEY (neighbor_id) REFERENCES node_graph (node_id),
+    FOREIGN KEY (neighbor_id) REFERENCES client_details (node_id),
     UNIQUE (node_id, neighbor_id)
 );
 
-CREATE INDEX idx_node_neighbors_node_id ON node_neighbors (node_id);
-CREATE INDEX idx_node_neighbors_neighbor_id ON node_neighbors (neighbor_id);
 CREATE UNIQUE INDEX idx_unique_node_neighbor ON node_neighbors (node_id, neighbor_id);
