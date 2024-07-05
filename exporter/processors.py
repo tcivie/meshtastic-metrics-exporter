@@ -472,7 +472,47 @@ class NeighborInfoAppProcessor(Processor):
         logger.debug("Received NEIGHBORINFO_APP packet")
         neighbor_info = NeighborInfo()
         neighbor_info.ParseFromString(payload)
-        pass
+        self.update_node_graph(neighbor_info, client_details)
+        self.update_node_neighbors(neighbor_info, client_details)
+
+    def update_node_graph(self, neighbor_info: NeighborInfo, client_details: ClientDetails):
+        def operation(cur, conn):
+            cur.execute("""
+                INSERT INTO node_graph (node_id, last_sent_by_node_id, broadcast_interval_secs)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (node_id) 
+                DO UPDATE SET 
+                    last_sent_by_node_id = EXCLUDED.last_sent_by_node_id,
+                    broadcast_interval_secs = EXCLUDED.broadcast_interval_secs,
+                    last_sent_at = CURRENT_TIMESTAMP
+            """, (client_details.node_id, neighbor_info.last_sent_by_id, neighbor_info.node_broadcast_interval_secs))
+            conn.commit()
+
+        self.execute_db_operation(operation)
+
+    def update_node_neighbors(self, neighbor_info: NeighborInfo, client_details: ClientDetails):
+        def operation(cur, conn):
+            new_neighbor_ids = [str(neighbor.node_id) for neighbor in neighbor_info.neighbors]
+            if new_neighbor_ids:
+                placeholders = ','.join(['%s'] * len(new_neighbor_ids))
+                cur.execute(f"""
+                    DELETE FROM node_neighbors 
+                    WHERE node_id = %s AND neighbor_id NOT IN ({placeholders})
+                """, (client_details.node_id, *new_neighbor_ids))
+            else:
+                cur.execute("DELETE FROM node_neighbors WHERE node_id = %s", (client_details.node_id,))
+
+            for neighbor in neighbor_info.neighbors:
+                cur.execute("""
+                    INSERT INTO node_neighbors (node_id, neighbor_id, snr)
+                    VALUES (%s, %s, %s)
+                    ON CONFLICT (node_id, neighbor_id) 
+                    DO UPDATE SET snr = EXCLUDED.snr
+                """, (client_details.node_id, str(neighbor.node_id), float(neighbor.snr)))
+
+            conn.commit()
+
+        self.execute_db_operation(operation)
 
 
 @ProcessorRegistry.register_processor(PortNum.ATAK_PLUGIN)

@@ -8,3 +8,15 @@ datasources:
     editable: true
     jsonData:
       httpMethod: POST
+  - name: postgres
+    type: postgres
+    access: proxy
+    url: postgres:5432
+    jsonData:
+      database: meshtastic
+      sslmode: "disable"
+    user: postgres
+    secureJsonData:
+      password: postgres
+    isDefault: false
+    editable: true
