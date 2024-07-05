@@ -461,9 +461,9 @@ class TraceRouteAppProcessor(Processor):
         traceroute.ParseFromString(payload)
         if traceroute.route:
             route = traceroute.route
-            self.metrics.route_discovery_counter.labels(
+            self.metrics.route_discovery_gauge.labels(
                 **client_details.to_dict()
-            ).inc(len(route))
+            ).set(len(route))
 
 
 @ProcessorRegistry.register_processor(PortNum.NEIGHBORINFO_APP)

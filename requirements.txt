@@ -6,3 +6,4 @@ cryptography~=42.0.8
 psycopg~=3.1.19
 psycopg_pool~=3.2.2
 meshtastic~=2.3.13
+psycopg-binary~=3.1.20
