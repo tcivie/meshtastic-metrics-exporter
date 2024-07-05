@@ -49,6 +49,4 @@ CREATE TABLE IF NOT EXISTS node_neighbors
     UNIQUE (node_id, neighbor_id)
 );
 
-CREATE INDEX idx_node_neighbors_node_id ON node_neighbors (node_id);
-CREATE INDEX idx_node_neighbors_neighbor_id ON node_neighbors (neighbor_id);
 CREATE UNIQUE INDEX idx_unique_node_neighbor ON node_neighbors (node_id, neighbor_id);
