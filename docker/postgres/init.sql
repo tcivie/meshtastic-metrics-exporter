@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS node_neighbors
     neighbor_id VARCHAR,
     snr         FLOAT,
     FOREIGN KEY (node_id) REFERENCES client_details (node_id),
-    FOREIGN KEY (neighbor_id) REFERENCES node_graph (node_id),
+    FOREIGN KEY (neighbor_id) REFERENCES client_details (node_id),
     UNIQUE (node_id, neighbor_id)
 );
 
