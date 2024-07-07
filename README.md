@@ -8,9 +8,30 @@ start creating dashboards immediately.
 
 - Exports a comprehensive set of metrics from an MQTT server to Prometheus.
 - Comes with a Grafana dashboard configured to connect to both Prometheus and Postgres data sources.
+  - Comes with some basic dashboards, see the section below for general view of the dashboards
 - Stores node details (ID, short/long name, hardware details, and client type) in a Postgres server, which is also part of
   the package.
 - Configuration via a `.env` file.
+
+### Grafana Dashboards
+The project comes wtih 2 dashboards.
+#### Main Dashboard
+<img width="1514" alt="SCR-20240707-qgnn" src="https://github.com/tcivie/meshtastic-metrics-exporter/assets/87943721/9679c140-c5f7-4ea5-bfc6-0173b52fb28c">
+
+> The dashboard has some basic data about the mesh network and it's data is temporarely updated (With new data coming in it would fill out the missing pieces automatically)
+
+#### User Panel
+<img width="1470" alt="SCR-20240707-qhth" src="https://github.com/tcivie/meshtastic-metrics-exporter/assets/87943721/58f15190-127d-4481-b896-1c3e2121dea5">
+
+> This panel can be reached from the "Node ID" link on the main dashboard (The table in the center) or you can go to it from the dashbaords tab in grafana and select the node you want to spectate. This board includes some telemetry data and basic information about the node.
+
+#### The Node Graph
+<img width="585" alt="SCR-20240707-qjaj" src="https://github.com/tcivie/meshtastic-metrics-exporter/assets/87943721/d29b2ac4-6291-4095-9938-e6e63df15098">
+
+> Both boards also include node graph which allows you to view nodes which are sending [Neighbour Info packets](https://meshtastic.org/docs/configuration/module/neighbor-info)
+> As long as we have some node which is connected to our MQTT server the data would be read buy the exporter and parsed as node graph. The line colors indicate the SNR value and the arrow is the direction of the flow captured (It can be two way). And the node circle color indicates which node is connected to MQTT (Green) which one is disconnected from MQTT (Red) and unknown (Gray - Never connected to the MQTT server)
+
+**I highly recomend giving the system to stabilize over 24 hours before seeking any useful information from it.**
 
 ## Exported Metrics
 
