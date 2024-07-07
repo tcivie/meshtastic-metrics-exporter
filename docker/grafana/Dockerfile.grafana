@@ -1,4 +1,5 @@
 FROM grafana/grafana-oss:11.1.0
 
 # Copy the datasource configuration
-COPY docker/grafana/datasources.yml /etc/grafana/provisioning/datasources/datasources.yml
+COPY docker/grafana/provisioning/datasources/datasources.yml /etc/grafana/provisioning/datasources/datasources.yml
+COPY docker/grafana/provisioning/dashboards/* /etc/grafana/provisioning/dashboards/*
