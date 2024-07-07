@@ -28,7 +28,7 @@ services:
       - mesh-bridge
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./docker/grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning
 
   exporter:
     build:
