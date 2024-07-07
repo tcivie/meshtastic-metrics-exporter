@@ -136,6 +136,7 @@ FILTERED_PORTS=0
 HIDE_MESSAGE=false
 ## MQTT server Key for decoding messages
 MQTT_SERVER_KEY=1PG7OiApB1nwvP+rz05pAQ==
+
 ```
 
 ## Running the Project
@@ -146,7 +147,7 @@ To run the project, simply use Docker Compose:
 docker-compose up --build
 ```
 
-This command will build and start all the necessary services, including the MQTT server, Prometheus server, Postgres
+This command will build and start all the necessary services, including the exporter, Prometheus server, Postgres
 server, and Grafana.
 
 ## Grafana Dashboard
