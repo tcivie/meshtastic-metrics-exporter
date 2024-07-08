@@ -5,6 +5,8 @@ from datetime import datetime
 import paho.mqtt.client as mqtt
 from dotenv import load_dotenv
 
+from constants import callback_api_version_map, protocol_map
+
 try:
     from meshtastic.mesh_pb2 import MeshPacket
     from meshtastic.mqtt_pb2 import ServiceEnvelope
@@ -87,9 +89,11 @@ if __name__ == "__main__":
     start_http_server(int(os.getenv('PROMETHEUS_COLLECTOR_PORT', 8000)), registry=registry)
 
     # Create an MQTT client
+    mqtt_protocol = os.getenv('MQTT_PROTOCOL', 'MQTTv5')
+    mqtt_callback_api_version = os.getenv('MQTT_CALLBACK_API_VERSION', 'VERSION2')
     mqtt_client = mqtt.Client(
-        callback_api_version=CallbackAPIVersion.VERSION2,
-        protocol=mqtt.MQTTv5
+        callback_api_version=callback_api_version_map.get(mqtt_callback_api_version, mqtt.CallbackAPIVersion.VERSION2),
+        protocol=protocol_map.get(mqtt_protocol, mqtt.MQTTv5)
     )
     mqtt_client.on_connect = handle_connect
     mqtt_client.on_message = handle_message
