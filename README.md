@@ -137,6 +137,14 @@ HIDE_MESSAGE=false
 ## MQTT server Key for decoding messages
 MQTT_SERVER_KEY=1PG7OiApB1nwvP+rz05pAQ==
 
+# MQTT protocol version (default: MQTTv5) the public MQTT server supports MQTTv311
+# Options: MQTTv311, MQTTv31, MQTTv5
+MQTT_PROTOCOL=MQTTv311
+
+# MQTT callback API version (default: VERSION2) the public MQTT server supports VERSION2
+# Options: VERSION1, VERSION2
+MQTT_CALLBACK_API_VERSION=VERSION2
+
 ```
 
 ## Running the Project
