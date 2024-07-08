@@ -14,7 +14,6 @@ except ImportError:
     from meshtastic.protobuf.mesh_pb2 import MeshPacket
     from meshtastic.protobuf.mqtt_pb2 import ServiceEnvelope
 
-from paho.mqtt.enums import CallbackAPIVersion
 from prometheus_client import CollectorRegistry, start_http_server
 from psycopg_pool import ConnectionPool
 
@@ -49,29 +48,42 @@ def update_node_status(node_number, status):
 def handle_message(client, userdata, message):
     current_timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     print(f"Received message on topic '{message.topic}' at {current_timestamp}")
-    if '/stat/' in message.topic:
-        user_id = message.topic.split('/')[-1]  # Hexadecimal user ID
-        if user_id[0] == '!':
-            node_number = str(int(user_id[1:], 16))
-            update_node_status(node_number, message.payload.decode('utf-8'))
+    if '/json/' in message.topic:
+        # Ignore JSON messages as there are also protobuf messages sent on other topic
+        # Source: https://github.com/meshtastic/firmware/blob/master/src/mqtt/MQTT.cpp#L448
         return
 
+    if '/stat/' in message.topic or '/tele/' in message.topic:
+        try:
+            user_id = message.topic.split('/')[-1]  # Hexadecimal user ID
+            if user_id[0] == '!':
+                node_number = str(int(user_id[1:], 16))
+                update_node_status(node_number, message.payload.decode('utf-8'))
+            return
+        except Exception as e:
+            logging.error(f"Failed to handle user MQTT stat: {e}")
+            return
+
     envelope = ServiceEnvelope()
-    envelope.ParseFromString(message.payload)
-    packet: MeshPacket = envelope.packet
+    try:
+        envelope.ParseFromString(message.payload)
+        packet: MeshPacket = envelope.packet
 
-    with connection_pool.connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute("SELECT id FROM messages WHERE id = %s", (str(packet.id),))
-            if cur.fetchone() is not None:
-                logging.debug(f"Packet {packet.id} already processed")
-                return
+        with connection_pool.connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT id FROM messages WHERE id = %s", (str(packet.id),))
+                if cur.fetchone() is not None:
+                    logging.debug(f"Packet {packet.id} already processed")
+                    return
 
-            cur.execute("INSERT INTO messages (id, received_at) VALUES (%s, NOW()) ON CONFLICT (id) DO NOTHING",
-                        (str(packet.id),))
-            conn.commit()
+                cur.execute("INSERT INTO messages (id, received_at) VALUES (%s, NOW()) ON CONFLICT (id) DO NOTHING",
+                            (str(packet.id),))
+                conn.commit()
 
-    processor.process(packet)
+        processor.process(packet)
+    except Exception as e:
+        logging.error(f"Failed to handle message: {e}")
+        return
 
 
 if __name__ == "__main__":

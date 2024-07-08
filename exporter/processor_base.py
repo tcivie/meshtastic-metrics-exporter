@@ -129,43 +129,52 @@ class MessageProcessor:
         )
 
     def process(self, mesh_packet: MeshPacket):
-        if getattr(mesh_packet, 'encrypted'):
-            key_bytes = base64.b64decode(os.getenv('MQTT_SERVER_KEY', '1PG7OiApB1nwvP+rz05pAQ==').encode('ascii'))
-            nonce_packet_id = getattr(mesh_packet, "id").to_bytes(8, "little")
-            nonce_from_node = getattr(mesh_packet, "from").to_bytes(8, "little")
+        try:
+            if getattr(mesh_packet, 'encrypted'):
+                key_bytes = base64.b64decode(os.getenv('MQTT_SERVER_KEY', '1PG7OiApB1nwvP+rz05pAQ==').encode('ascii'))
+                nonce_packet_id = getattr(mesh_packet, "id").to_bytes(8, "little")
+                nonce_from_node = getattr(mesh_packet, "from").to_bytes(8, "little")
 
-            # Put both parts into a single byte array.
-            nonce = nonce_packet_id + nonce_from_node
+                # Put both parts into a single byte array.
+                nonce = nonce_packet_id + nonce_from_node
 
-            cipher = Cipher(algorithms.AES(key_bytes), modes.CTR(nonce), backend=default_backend())
-            decryptor = cipher.decryptor()
-            decrypted_bytes = decryptor.update(getattr(mesh_packet, "encrypted")) + decryptor.finalize()
+                cipher = Cipher(algorithms.AES(key_bytes), modes.CTR(nonce), backend=default_backend())
+                decryptor = cipher.decryptor()
+                decrypted_bytes = decryptor.update(getattr(mesh_packet, "encrypted")) + decryptor.finalize()
 
-            data = Data()
-            data.ParseFromString(decrypted_bytes)
-            mesh_packet.decoded.CopyFrom(data)
-        port_num = int(mesh_packet.decoded.portnum)
-        payload = mesh_packet.decoded.payload
+                data = Data()
+                try:
+                    data.ParseFromString(decrypted_bytes)
+                except Exception as e:
+                    print(f"Failed to decrypt message: {e}")
+                    return
+                mesh_packet.decoded.CopyFrom(data)
+            port_num = int(mesh_packet.decoded.portnum)
+            payload = mesh_packet.decoded.payload
 
-        source_node_id = getattr(mesh_packet, 'from')
-        source_client_details = self._get_client_details(source_node_id)
-        if os.getenv('MESH_HIDE_SOURCE_DATA', 'false') == 'true':
-            source_client_details = ClientDetails(node_id=source_client_details.node_id, short_name='Hidden',
-                                                  long_name='Hidden')
+            source_node_id = getattr(mesh_packet, 'from')
+            source_client_details = self._get_client_details(source_node_id)
+            if os.getenv('MESH_HIDE_SOURCE_DATA', 'false') == 'true':
+                source_client_details = ClientDetails(node_id=source_client_details.node_id, short_name='Hidden',
+                                                      long_name='Hidden')
 
-        destination_node_id = getattr(mesh_packet, 'to')
-        destination_client_details = self._get_client_details(destination_node_id)
-        if os.getenv('MESH_HIDE_DESTINATION_DATA', 'false') == 'true':
-            destination_client_details = ClientDetails(node_id=destination_client_details.node_id, short_name='Hidden',
-                                                       long_name='Hidden')
+            destination_node_id = getattr(mesh_packet, 'to')
+            destination_client_details = self._get_client_details(destination_node_id)
+            if os.getenv('MESH_HIDE_DESTINATION_DATA', 'false') == 'true':
+                destination_client_details = ClientDetails(node_id=destination_client_details.node_id,
+                                                           short_name='Hidden',
+                                                           long_name='Hidden')
 
-        if port_num in map(int, os.getenv('FILTERED_PORTS', '1').split(',')):  # Filter out ports
-            return None  # Ignore this packet
+            if port_num in map(int, os.getenv('FILTERED_PORTS', '1').split(',')):  # Filter out ports
+                return None  # Ignore this packet
 
-        self.process_simple_packet_details(destination_client_details, mesh_packet, port_num, source_client_details)
+            self.process_simple_packet_details(destination_client_details, mesh_packet, port_num, source_client_details)
 
-        processor = ProcessorRegistry.get_processor(port_num)(self.registry, self.db_pool)
-        processor.process(payload, client_details=source_client_details)
+            processor = ProcessorRegistry.get_processor(port_num)(self.registry, self.db_pool)
+            processor.process(payload, client_details=source_client_details)
+        except Exception as e:
+            print(f"Failed to process message: {e}")
+            return
 
     @staticmethod
     def get_port_name_from_portnum(port_num):

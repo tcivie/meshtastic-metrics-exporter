@@ -92,8 +92,11 @@ class RemoteHardwareAppProcessor(Processor):
     def process(self, payload: bytes, client_details: ClientDetails):
         logger.debug("Received REMOTE_HARDWARE_APP packet")
         hardware_message = HardwareMessage()
-        hardware_message.ParseFromString(payload)
-        pass
+        try:
+            hardware_message.ParseFromString(payload)
+        except Exception as e:
+            logger.error(f"Failed to parse REMOTE_HARDWARE_APP packet: {e}")
+            return
 
 
 @ProcessorRegistry.register_processor(PortNum.POSITION_APP)
@@ -101,7 +104,11 @@ class PositionAppProcessor(Processor):
     def process(self, payload: bytes, client_details: ClientDetails):
         logger.debug("Received POSITION_APP packet")
         position = Position()
-        position.ParseFromString(payload)
+        try:
+            position.ParseFromString(payload)
+        except Exception as e:
+            logger.error(f"Failed to parse POSITION_APP packet: {e}")
+            return
         self.metrics.device_latitude_gauge.labels(
             **client_details.to_dict()
         ).set(position.latitude_i)
@@ -122,7 +129,11 @@ class NodeInfoAppProcessor(Processor):
     def process(self, payload: bytes, client_details: ClientDetails):
         logger.debug("Received NODEINFO_APP packet")
         user = User()
-        user.ParseFromString(payload)
+        try:
+            user.ParseFromString(payload)
+        except Exception as e:
+            logger.error(f"Failed to parse NODEINFO_APP packet: {e}")
+            return
 
         def db_operation(cur, conn):
             # First, try to select the existing record
@@ -176,7 +187,11 @@ class RoutingAppProcessor(Processor):
     def process(self, payload: bytes, client_details: ClientDetails):
         logger.debug("Received ROUTING_APP packet")
         routing = Routing()
-        routing.ParseFromString(payload)
+        try:
+            routing.ParseFromString(payload)
+        except Exception as e:
+            logger.error(f"Failed to parse ROUTING_APP packet: {e}")
+            return
         self.metrics.route_discovery_response_counter.labels(
             **client_details.to_dict(),
             response_type=self.get_error_name_from_routing(routing.error_reason)
@@ -195,8 +210,11 @@ class AdminAppProcessor(Processor):
     def process(self, payload: bytes, client_details: ClientDetails):
         logger.debug("Received ADMIN_APP packet")
         admin_message = AdminMessage()
-        admin_message.ParseFromString(payload)
-        pass
+        try:
+            admin_message.ParseFromString(payload)
+        except Exception as e:
+            logger.error(f"Failed to parse ADMIN_APP packet: {e}")
+            return
 
 
 @ProcessorRegistry.register_processor(PortNum.TEXT_MESSAGE_COMPRESSED_APP)
@@ -212,8 +230,11 @@ class WaypointAppProcessor(Processor):
     def process(self, payload: bytes, client_details: ClientDetails):
         logger.debug("Received WAYPOINT_APP packet")
         waypoint = Waypoint()
-        waypoint.ParseFromString(payload)
-        pass
+        try:
+            waypoint.ParseFromString(payload)
+        except Exception as e:
+            logger.error(f"Failed to parse WAYPOINT_APP packet: {e}")
+            return
 
 
 @ProcessorRegistry.register_processor(PortNum.AUDIO_APP)
@@ -249,8 +270,11 @@ class PaxCounterAppProcessor(Processor):
     def process(self, payload: bytes, client_details: ClientDetails):
         logger.debug("Received PAXCOUNTER_APP packet")
         paxcounter = Paxcount()
-        paxcounter.ParseFromString(payload)
-        pass
+        try:
+            paxcounter.ParseFromString(payload)
+        except Exception as e:
+            logger.error(f"Failed to parse PAXCOUNTER_APP packet: {e}")
+            return
 
 
 @ProcessorRegistry.register_processor(PortNum.SERIAL_APP)
@@ -265,8 +289,11 @@ class StoreForwardAppProcessor(Processor):
     def process(self, payload: bytes, client_details: ClientDetails):
         logger.debug("Received STORE_FORWARD_APP packet")
         store_and_forward = StoreAndForward()
-        store_and_forward.ParseFromString(payload)
-        pass
+        try:
+            store_and_forward.ParseFromString(payload)
+        except Exception as e:
+            logger.error(f"Failed to parse STORE_FORWARD_APP packet: {e}")
+            return
 
 
 @ProcessorRegistry.register_processor(PortNum.RANGE_TEST_APP)
@@ -284,7 +311,11 @@ class TelemetryAppProcessor(Processor):
     def process(self, payload: bytes, client_details: ClientDetails):
         logger.debug("Received TELEMETRY_APP packet")
         telemetry = Telemetry()
-        telemetry.ParseFromString(payload)
+        try:
+            telemetry.ParseFromString(payload)
+        except Exception as e:
+            logger.error(f"Failed to parse TELEMETRY_APP packet: {e}")
+            return
 
         if telemetry.HasField('device_metrics'):
             device_metrics: DeviceMetrics = telemetry.device_metrics
@@ -458,7 +489,11 @@ class TraceRouteAppProcessor(Processor):
     def process(self, payload: bytes, client_details: ClientDetails):
         logger.debug("Received TRACEROUTE_APP packet")
         traceroute = RouteDiscovery()
-        traceroute.ParseFromString(payload)
+        try:
+            traceroute.ParseFromString(payload)
+        except Exception as e:
+            logger.error(f"Failed to parse TRACEROUTE_APP packet: {e}")
+            return
         if traceroute.route:
             route = traceroute.route
             self.metrics.route_discovery_gauge.labels(
@@ -471,7 +506,11 @@ class NeighborInfoAppProcessor(Processor):
     def process(self, payload: bytes, client_details: ClientDetails):
         logger.debug("Received NEIGHBORINFO_APP packet")
         neighbor_info = NeighborInfo()
-        neighbor_info.ParseFromString(payload)
+        try:
+            neighbor_info.ParseFromString(payload)
+        except Exception as e:
+            logger.error(f"Failed to parse NEIGHBORINFO_APP packet: {e}")
+            return
         self.update_node_graph(neighbor_info, client_details)
         self.update_node_neighbors(neighbor_info, client_details)
 
@@ -537,8 +576,11 @@ class MapReportAppProcessor(Processor):
     def process(self, payload: bytes, client_details: ClientDetails):
         logger.debug("Received MAP_REPORT_APP packet")
         map_report = MapReport()
-        map_report.ParseFromString(payload)
-        pass  # Nothing interesting here
+        try:
+            map_report.ParseFromString(payload)
+        except Exception as e:
+            logger.error(f"Failed to parse MAP_REPORT_APP packet: {e}")
+            return
 
 
 @ProcessorRegistry.register_processor(PortNum.PRIVATE_APP)
