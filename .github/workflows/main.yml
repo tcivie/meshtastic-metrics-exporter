@@ -1,0 +1,51 @@
+name: Docker Container Health Check
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  check-containers:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Start Docker Compose
+      run: docker-compose up -d
+
+    - name: Wait for containers to start
+      run: sleep 60  # 1 minute
+
+    - name: Check container statuses
+      run: |
+        services=("exporter-1" "grafana-1" "postgres-1" "prometheus-1")
+        
+        for service in "${services[@]}"
+        do
+          container_id=$(docker-compose ps -q $service)
+          
+          if [ -z "$container_id" ]; then
+            echo "Error: Container for $service not found"
+            exit 1
+          fi
+          
+          status=$(docker inspect --format='{{.State.Status}}' $container_id)
+          restarts=$(docker inspect --format='{{.RestartCount}}' $container_id)
+          
+          if [ "$status" != "running" ]; then
+            echo "Error: Container $service ($container_id) is not running. Current status: $status"
+            exit 1
+          fi
+          
+          if [ "$restarts" -gt 0 ]; then
+            echo "Error: Container $service ($container_id) has restarted $restarts times"
+            exit 1
+          fi
+          
+          echo "Container $service is running properly and has not restarted."
+        done
+
+    - name: Clean up
+      if: always()
+      run: docker-compose down
