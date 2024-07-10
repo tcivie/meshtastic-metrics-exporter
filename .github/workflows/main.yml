@@ -1,4 +1,4 @@
-name: Docker Container Health Check
+name: Meshtastic Metrics Exporter Health Check
 
 on:
   pull_request:
@@ -15,11 +15,11 @@ jobs:
       run: docker-compose up -d
 
     - name: Wait for containers to start
-      run: sleep 60  # 1 minute
+      run: sleep 60  # 1 Minute
 
     - name: Check container statuses
       run: |
-        services=("exporter-1" "grafana-1" "postgres-1" "prometheus-1")
+        services=("prometheus" "grafana" "exporter" "postgres")
         
         for service in "${services[@]}"
         do
@@ -46,6 +46,18 @@ jobs:
           echo "Container $service is running properly and has not restarted."
         done
 
+    - name: Check exposed ports
+      run: |
+        expected_ports=("9090" "3000" "5432")
+        for port in "${expected_ports[@]}"
+        do
+          if ! netstat -tuln | grep -q ":$port "; then
+            echo "Error: Port $port is not exposed"
+            exit 1
+          fi
+          echo "Port $port is correctly exposed"
+        done
+
     - name: Clean up
       if: always()
-      run: docker-compose down
+      run: docker-compose down -v
