@@ -8,4 +8,5 @@ RUN pip3 install -r requirements.txt
 
 COPY ../../exporter exporter
 COPY ../../main.py .
+COPY ../../constants.py .
 CMD ["python3", "-u", "main.py"]
