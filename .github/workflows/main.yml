@@ -1,0 +1,68 @@
+name: Meshtastic Metrics Exporter Health Check
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  check-containers:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Start Docker Compose
+      run: docker-compose up -d
+
+    - name: Wait for containers to start
+      run: sleep 60  # 1 Minute
+
+    - name: Check container statuses and logs
+      run: |
+        services=("prometheus" "grafana" "exporter" "postgres")
+        
+        for service in "${services[@]}"
+        do
+          container_id=$(docker-compose ps -q $service)
+          
+          if [ -z "$container_id" ]; then
+            echo "Error: Container for $service not found"
+            docker-compose logs $service
+            exit 1
+          fi
+          
+          status=$(docker inspect --format='{{.State.Status}}' $container_id)
+          restarts=$(docker inspect --format='{{.RestartCount}}' $container_id)
+          
+          if [ "$status" != "running" ]; then
+            echo "Error: Container $service ($container_id) is not running. Current status: $status"
+            echo "Last logs for $service:"
+            docker-compose logs --tail=50 $service
+            exit 1
+          fi
+          
+          if [ "$restarts" -gt 0 ]; then
+            echo "Error: Container $service ($container_id) has restarted $restarts times"
+            echo "Last logs for $service:"
+            docker-compose logs --tail=50 $service
+            exit 1
+          fi
+          
+          echo "Container $service is running properly and has not restarted."
+        done
+
+    - name: Check exposed ports
+      run: |
+        expected_ports=("9090" "3000")
+        for port in "${expected_ports[@]}"
+        do
+          if ! netstat -tuln | grep -q ":$port "; then
+            echo "Error: Port $port is not exposed"
+            exit 1
+          fi
+          echo "Port $port is correctly exposed"
+        done
+
+    - name: Clean up
+      if: always()
+      run: docker-compose down -v
