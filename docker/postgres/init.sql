@@ -50,3 +50,6 @@ CREATE TABLE IF NOT EXISTS node_neighbors
 );
 
 CREATE UNIQUE INDEX idx_unique_node_neighbor ON node_neighbors (node_id, neighbor_id);
+
+ALTER TABLE client_details
+    ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
