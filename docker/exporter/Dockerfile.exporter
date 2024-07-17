@@ -1,7 +1,8 @@
-FROM python
+FROM python:alpine
 LABEL author="Gleb Tcivie"
 
 WORKDIR /app
+RUN  apk add --update --no-cache gcc libc-dev libffi-dev
 COPY ../../requirements.txt .
 COPY ../../.env .
 RUN pip3 install -r requirements.txt
