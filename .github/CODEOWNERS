@@ -1,0 +1,4 @@
+# This is a CODEOWNERS file for automatic assignment of code reviewers on GitHub
+
+# Global rule: @tcivie will be the owner for everything in the repo
+*       @tcivie
