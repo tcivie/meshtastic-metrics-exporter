@@ -1,0 +1,23 @@
+name: Auto Tagger
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  auto-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Github PR Auto Tagger
+        uses: RueLaLa/auto-tagger@v2.1.3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_prefix: "v"
+          tag_suffix: ""
