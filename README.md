@@ -153,7 +153,7 @@ MQTT_CALLBACK_API_VERSION=VERSION2
 To run the project, simply use Docker Compose:
 
 ```bash
-docker-compose up --build
+docker compose up -d
 ```
 
 This command will build and start all the necessary services, including the exporter, Prometheus server, Postgres
