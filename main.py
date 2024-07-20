@@ -19,7 +19,6 @@ from psycopg_pool import ConnectionPool
 
 from exporter.processor_base import MessageProcessor
 
-# Global connection pool
 connection_pool = None
 
 
