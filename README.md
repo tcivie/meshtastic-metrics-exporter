@@ -1,4 +1,5 @@
 # Meshtastic Metrics Exporter
+[![CodeQL](https://github.com/tcivie/meshtastic-metrics-exporter/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/tcivie/meshtastic-metrics-exporter/actions/workflows/github-code-scanning/codeql)
 
 The `meshtastic-metrics-exporter` is a tool designed to export nearly all available data from an MQTT server to a
 Prometheus server. It comes with a pre-configured Grafana dashboard connected to both data sources, allowing users to
