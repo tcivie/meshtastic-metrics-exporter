@@ -1,18 +1,26 @@
-name: Auto Tagger
-
+name: Bump version
 on:
-  push:
+  pull_request:
+    types:
+      - closed
     branches:
-      - main
+      - master
 
 jobs:
-  auto-tag:
-    runs-on: ubuntu-latest
+  build:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
+    - uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.pull_request.merge_commit_sha }}
+        fetch-depth: '0'
 
-      - name: Github PR Auto Tagger
-        uses: RueLaLa/auto-tagger@v2.1.3
+    - name: Bump version and push tag
+      uses: anothrNick/github-tag-action@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        WITH_V: true
+        PRERELEASE: true
