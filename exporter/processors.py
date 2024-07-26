@@ -5,6 +5,8 @@ from venv import logger
 import psycopg
 import unishox2
 
+from exporter.db_handler import DBHandler
+
 try:
     from meshtastic.admin_pb2 import AdminMessage
     from meshtastic.mesh_pb2 import Position, User, HardwareModel, Routing, Waypoint, RouteDiscovery, NeighborInfo
@@ -36,16 +38,11 @@ from exporter.registry import _Metrics
 class Processor(ABC):
     def __init__(self, registry: CollectorRegistry, db_pool: ConnectionPool):
         self.db_pool = db_pool
-        self.metrics = _Metrics(registry)
+        self.metrics = _Metrics(registry, DBHandler(db_pool))
 
     @abstractmethod
     def process(self, payload: bytes, client_details: ClientDetails):
         pass
-
-    def execute_db_operation(self, operation):
-        with self.db_pool.connection() as conn:
-            with conn.cursor() as cur:
-                return operation(cur, conn)
 
 
 class ProcessorRegistry:
@@ -113,18 +110,10 @@ class PositionAppProcessor(Processor):
         except Exception as e:
             logger.error(f"Failed to parse POSITION_APP packet: {e}")
             return
-        self.metrics.device_latitude_gauge.labels(
-            **client_details.to_dict()
-        ).set(position.latitude_i)
-        self.metrics.device_longitude_gauge.labels(
-            **client_details.to_dict()
-        ).set(position.longitude_i)
-        self.metrics.device_altitude_gauge.labels(
-            **client_details.to_dict()
-        ).set(position.altitude)
-        self.metrics.device_position_precision_gauge.labels(
-            **client_details.to_dict()
-        ).set(position.precision_bits)
+
+        self.metrics.update_metrics_position(
+            position.latitude_i, position.longitude_i, position.altitude,
+            position.precision_bits, client_details)
         pass
 
 
@@ -143,7 +132,7 @@ class NodeInfoAppProcessor(Processor):
             # First, try to select the existing record
             cur.execute("""
                 SELECT short_name, long_name, hardware_model, role
-                FROM client_details
+                FROM node_details
                 WHERE node_id = %s;
             """, (client_details.node_id,))
             existing_record = cur.fetchone()
@@ -167,7 +156,7 @@ class NodeInfoAppProcessor(Processor):
 
                 if update_fields:
                     update_query = f"""
-                        UPDATE client_details
+                        UPDATE node_details
                         SET {", ".join(update_fields)}
                         WHERE node_id = %s
                     """
@@ -175,7 +164,7 @@ class NodeInfoAppProcessor(Processor):
             else:
                 # If record doesn't exist, insert a new one
                 cur.execute("""
-                    INSERT INTO client_details (node_id, short_name, long_name, hardware_model, role)
+                    INSERT INTO node_details (node_id, short_name, long_name, hardware_model, role)
                     VALUES (%s, %s, %s, %s, %s)
                 """, (client_details.node_id, user.short_name, user.long_name,
                       ClientDetails.get_hardware_model_name_from_code(user.hw_model),
@@ -183,7 +172,7 @@ class NodeInfoAppProcessor(Processor):
 
             conn.commit()
 
-        self.execute_db_operation(db_operation)
+        self.metrics.db.execute_db_operation(db_operation)
 
 
 @ProcessorRegistry.register_processor(PortNum.ROUTING_APP)
@@ -531,7 +520,7 @@ class NeighborInfoAppProcessor(Processor):
             """, (client_details.node_id, neighbor_info.last_sent_by_id, neighbor_info.node_broadcast_interval_secs))
             conn.commit()
 
-        self.execute_db_operation(operation)
+        self.metrics.db.execute_db_operation(operation)
 
     def update_node_neighbors(self, neighbor_info: NeighborInfo, client_details: ClientDetails):
         def operation(cur, conn):
@@ -554,18 +543,18 @@ class NeighborInfoAppProcessor(Processor):
                         DO UPDATE SET snr = EXCLUDED.snr
                         RETURNING node_id, neighbor_id
                     )
-                    INSERT INTO client_details (node_id)
+                    INSERT INTO node_details (node_id)
                     SELECT node_id FROM upsert
-                    WHERE NOT EXISTS (SELECT 1 FROM client_details WHERE node_id = upsert.node_id)
+                    WHERE NOT EXISTS (SELECT 1 FROM node_details WHERE node_id = upsert.node_id)
                     UNION
                     SELECT neighbor_id FROM upsert
-                    WHERE NOT EXISTS (SELECT 1 FROM client_details WHERE node_id = upsert.neighbor_id)
+                    WHERE NOT EXISTS (SELECT 1 FROM node_details WHERE node_id = upsert.neighbor_id)
                     ON CONFLICT (node_id) DO NOTHING;
                 """, (str(client_details.node_id), str(neighbor.node_id), float(neighbor.snr)))
 
             conn.commit()
 
-        self.execute_db_operation(operation)
+        self.metrics.db.execute_db_operation(operation)
 
 
 @ProcessorRegistry.register_processor(PortNum.ATAK_PLUGIN)

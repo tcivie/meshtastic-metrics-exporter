@@ -258,7 +258,7 @@ class MessageProcessor:
                 # First, try to select the existing record
                 cur.execute("""
                     SELECT node_id, short_name, long_name, hardware_model, role 
-                    FROM client_details 
+                    FROM node_details 
                     WHERE node_id = %s;
                 """, (node_id_str,))
                 result = cur.fetchone()
@@ -266,7 +266,7 @@ class MessageProcessor:
                 if not result:
                     # If the client is not found, insert a new record
                     cur.execute("""
-                        INSERT INTO client_details (node_id, short_name, long_name, hardware_model, role)
+                        INSERT INTO node_details (node_id, short_name, long_name, hardware_model, role)
                         VALUES (%s, %s, %s, %s, %s)
                         RETURNING node_id, short_name, long_name, hardware_model, role;
                     """, (node_id_str, 'Unknown', 'Unknown', HardwareModel.UNSET, None))
