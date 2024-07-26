@@ -165,9 +165,6 @@ class MessageProcessor:
                                                            short_name='Hidden',
                                                            long_name='Hidden')
 
-            if port_num in map(int, os.getenv('FILTERED_PORTS', '1').split(',')):  # Filter out ports
-                return None  # Ignore this packet
-
             self.process_simple_packet_details(destination_client_details, mesh_packet, port_num, source_client_details)
 
             processor = ProcessorRegistry.get_processor(port_num)(self.registry, self.db_pool)

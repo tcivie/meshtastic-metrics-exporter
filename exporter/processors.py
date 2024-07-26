@@ -54,6 +54,11 @@ class ProcessorRegistry:
     @classmethod
     def register_processor(cls, port_num):
         def inner_wrapper(wrapped_class):
+            if PortNum.DESCRIPTOR.values_by_number[port_num].name in os.getenv('EXPORTER_MESSAGE_TYPES_TO_FILTER',
+                                                                               '').split(','):
+                logger.info(f"Processor for port_num {port_num} is filtered out")
+                return wrapped_class
+
             cls._registry[port_num] = wrapped_class
             return wrapped_class
 
@@ -71,7 +76,6 @@ class ProcessorRegistry:
 @ProcessorRegistry.register_processor(PortNum.UNKNOWN_APP)
 class UnknownAppProcessor(Processor):
     def process(self, payload: bytes, client_details: ClientDetails):
-        logger.debug("Received UNKNOWN_APP packet")
         return None
 
 

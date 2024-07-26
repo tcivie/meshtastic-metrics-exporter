@@ -17,8 +17,6 @@ except ImportError:
 from prometheus_client import CollectorRegistry, start_http_server
 from psycopg_pool import ConnectionPool
 
-from exporter.processor_base import MessageProcessor
-
 connection_pool = None
 
 
@@ -87,6 +85,9 @@ def handle_message(client, userdata, message):
 
 if __name__ == "__main__":
     load_dotenv()
+
+    # We have to load_dotenv before we can import MessageProcessor to allow filtering of message types
+    from exporter.processor_base import MessageProcessor
 
     # Setup a connection pool
     connection_pool = ConnectionPool(
