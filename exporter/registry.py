@@ -1,6 +1,6 @@
 import geopy.point
 from geopy.geocoders import Nominatim
-from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram
+from prometheus_client import CollectorRegistry, Counter, Gauge
 
 from exporter.client_details import ClientDetails
 from exporter.db_handler import DBHandler
@@ -29,20 +29,11 @@ class _Metrics:
         ]
 
     def _init_metrics(self):
-        self._init_metrics_text_message()
         self._init_metrics_telemetry_device()
         self._init_metrics_telemetry_environment()
         self._init_metrics_telemetry_air_quality()
         self._init_metrics_telemetry_power()
         self._init_route_discovery_metrics()
-
-    def _init_metrics_text_message(self):
-        self.message_length_histogram = Histogram(
-            'text_message_app_length',
-            'Length of text messages processed by the app',
-            self._get_common_labels(),
-            registry=self._registry
-        )
 
     def update_metrics_position(self, latitude, longitude, altitude, precision, client_details: ClientDetails):
         point = geopy.point.Point(latitude, longitude, altitude)

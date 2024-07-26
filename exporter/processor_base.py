@@ -1,5 +1,6 @@
 import base64
 import os
+import sys
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -20,6 +21,7 @@ from exporter.processors import ProcessorRegistry
 
 class MessageProcessor:
     def __init__(self, registry: CollectorRegistry, db_pool: ConnectionPool):
+        self.message_size_in_bytes = None
         self.rx_rssi_gauge = None
         self.channel_counter = None
         self.packet_id_counter = None
@@ -43,6 +45,13 @@ class MessageProcessor:
             'destination_id', 'destination_short_name', 'destination_long_name', 'destination_hardware_model',
             'destination_role'
         ]
+
+        self.message_size_in_bytes = Histogram(
+            'text_message_app_size_in_bytes',
+            'Size of text messages processed by the app in Bytes',
+            common_labels + ['portnum'],
+            registry=self.registry
+        )
 
         self.source_message_type_counter = Counter(
             'mesh_packet_source_types',
@@ -181,7 +190,8 @@ class MessageProcessor:
                 return enum_value.name
         return 'UNKNOWN_PORT'
 
-    def process_simple_packet_details(self, destination_client_details, mesh_packet, port_num, source_client_details):
+    def process_simple_packet_details(self, destination_client_details, mesh_packet: MeshPacket, port_num,
+                                      source_client_details):
         common_labels = {
             'source_id': source_client_details.node_id,
             'source_short_name': source_client_details.short_name,
@@ -194,6 +204,11 @@ class MessageProcessor:
             'destination_hardware_model': destination_client_details.hardware_model,
             'destination_role': destination_client_details.role,
         }
+
+        self.message_size_in_bytes.labels(
+            **common_labels,
+            portnum=self.get_port_name_from_portnum(port_num)
+        ).observe(sys.getsizeof(mesh_packet))
 
         self.source_message_type_counter.labels(
             **common_labels,
