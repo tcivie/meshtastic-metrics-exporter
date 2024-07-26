@@ -1,6 +1,3 @@
-import uuid
-
-from geopy.geocoders import Nominatim
 from prometheus_client import CollectorRegistry, Counter, Gauge
 
 from exporter.client_details import ClientDetails
@@ -20,7 +17,6 @@ class _Metrics:
             self._registry = registry
             self._init_metrics()
             self.initialized = True  # Attribute to indicate initialization
-        self.geolocator = Nominatim(user_agent=f"meshtastic-prometheus-exporter-{str(uuid.uuid4())}")
         self.db = db
 
     def get_db(self):
