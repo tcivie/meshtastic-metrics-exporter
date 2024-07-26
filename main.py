@@ -17,8 +17,6 @@ except ImportError:
 from prometheus_client import CollectorRegistry, start_http_server
 from psycopg_pool import ConnectionPool
 
-from exporter.processor_base import MessageProcessor
-
 connection_pool = None
 
 
@@ -38,7 +36,7 @@ def handle_connect(client, userdata, flags, reason_code, properties):
 def update_node_status(node_number, status):
     with connection_pool.connection() as conn:
         with conn.cursor() as cur:
-            cur.execute("INSERT INTO client_details (node_id, mqtt_status) VALUES (%s, %s)"
+            cur.execute("INSERT INTO node_details (node_id, mqtt_status) VALUES (%s, %s)"
                         "ON CONFLICT(node_id)"
                         "DO UPDATE SET mqtt_status = %s", (node_number, status, status))
             conn.commit()
@@ -87,6 +85,9 @@ def handle_message(client, userdata, message):
 
 if __name__ == "__main__":
     load_dotenv()
+
+    # We have to load_dotenv before we can import MessageProcessor to allow filtering of message types
+    from exporter.processor_base import MessageProcessor
 
     # Setup a connection pool
     connection_pool = ConnectionPool(

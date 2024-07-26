@@ -18,40 +18,36 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 10,
+  "id": 2,
   "links": [],
   "panels": [
     {
       "datasource": {
-        "type": "postgres",
-        "uid": "PA942B37CCFAF5A81"
+        "type": "datasource",
+        "uid": "-- Mixed --"
       },
-      "description": "This scoring system evaluates nodes in our mesh network based on two key factors:\n\n* Importance Score (0-100)\nMeasures how critical the node is for overall network connectivity.\nA higher score indicates that the node is on many shortest paths between other nodes in the network.\nNodes with high importance scores are crucial for maintaining efficient network communication and resilience.\n\n* Stability Score (0-100)\nReflects the quality and quantity of the node's connections.\nCombines two sub-factors: a) The average Signal-to-Noise Ratio (SNR) of the node's connections. b) The number of neighbors the node has.\nA higher score suggests more reliable and robust connections.",
+      "description": "Total packets sent in specified time range",
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "thresholds"
+            "mode": "palette-classic"
           },
-          "mappings": [
-            {
-              "options": {
-                "importance_score": {
-                  "index": 0,
-                  "text": "Importance Score"
-                }
-              },
-              "type": "value"
-            }
-          ],
+          "fieldMinMax": false,
+          "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
                 "color": "green",
                 "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
               }
             ]
-          }
+          },
+          "unit": "Packets"
         },
         "overrides": []
       },
@@ -61,10 +57,10 @@
         "x": 0,
         "y": 0
       },
-      "id": 13,
+      "id": 10,
       "options": {
         "colorMode": "value",
-        "graphMode": "area",
+        "graphMode": "none",
         "justifyMode": "auto",
         "orientation": "auto",
         "percentChangeColorMode": "standard",
@@ -83,51 +79,21 @@
       "targets": [
         {
           "datasource": {
-            "type": "postgres",
-            "uid": "PA942B37CCFAF5A81"
+            "type": "prometheus",
+            "uid": "P1809F7CD0C75ACF3"
           },
-          "editorMode": "code",
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "WITH RECURSIVE\n-- Find all paths in the network\npaths(start_node, end_node, path, depth) AS (\n    SELECT node_id, neighbor_id, ARRAY[node_id, neighbor_id], 1\n    FROM node_neighbors\n    UNION ALL\n    SELECT p.start_node, nn.neighbor_id, p.path || nn.neighbor_id, p.depth + 1\n    FROM paths p\n    JOIN node_neighbors nn ON p.end_node = nn.node_id\n    WHERE nn.neighbor_id <> ALL(p.path) AND p.depth < 10 -- Limit path depth to avoid cycles\n),\n-- Calculate node importance based on how many shortest paths it's on\nnode_importance AS (\n    SELECT node_id, COUNT(*) as path_count\n    FROM (\n        SELECT DISTINCT ON (start_node, unnest) unnest AS node_id\n        FROM (\n            SELECT start_node, end_node, unnest(path[2:array_length(path,1)-1])\n            FROM (\n                SELECT DISTINCT ON (start_node, end_node) *\n                FROM paths\n                ORDER BY start_node, end_node, depth\n            ) shortest_paths\n            WHERE array_length(path, 1) > 2\n        ) exploded_paths\n    ) nodes_on_paths\n    GROUP BY node_id\n),\n-- Calculate average SNR and neighbor count for stability score\nnode_stability AS (\n    SELECT\n        node_id,\n        AVG(snr) as avg_snr,\n        COUNT(*) as neighbor_count\n    FROM node_neighbors\n    GROUP BY node_id\n),\n-- Calculate the maximum path_count and neighbor_count for normalization\nmax_values AS (\n    SELECT \n        MAX(ni.path_count) as max_path_count,\n        MAX(ns.neighbor_count) as max_neighbor_count\n    FROM node_importance ni\n    CROSS JOIN node_stability ns\n)\nSELECT\n    cd.node_id,\n    cd.short_name,\n    cd.role,\n    -- Revised Importance Score (0-100)\n    -- Combine normalized path_count and neighbor_count using a logarithmic scale\n    LEAST(\n        (LN(COALESCE(ni.path_count, 1)) / LN(GREATEST(mv.max_path_count, 2))) * 50 +\n        (LN(COALESCE(ns.neighbor_count, 1)) / LN(GREATEST(mv.max_neighbor_count, 2))) * 50,\n        100\n    )::INT AS importance_score,\n    -- Stability Score (0-100)\n    -- Combine SNR quality and neighbor count, normalize to 0-100 scale\n    LEAST(\n        (COALESCE(ns.avg_snr, 0) + 20) * 2.5 + -- SNR typically ranges from -20 to 20, so we add 20 and multiply by 2.5 to get 0-100\n        LEAST(COALESCE(ns.neighbor_count, 0) * 10, 50), -- Up to 50 points for number of neighbors\n        100\n    )::INT AS stability_score\nFROM\n    client_details cd\nLEFT JOIN node_importance ni ON cd.node_id = ni.node_id\nLEFT JOIN node_stability ns ON cd.node_id = ns.node_id\nCROSS JOIN max_values mv\nWHERE\n    cd.node_id = ${nodeID:singlequote}",
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "expr": "sum(sum by(portnum) (mesh_packet_source_types_total{source_id=~\"$nodeID\"}))",
+          "fullMetaSearch": false,
+          "includeNullMetadata": true,
+          "legendFormat": "__auto",
+          "range": true,
           "refId": "A",
-          "sql": {
-            "columns": [
-              {
-                "parameters": [],
-                "type": "function"
-              }
-            ],
-            "groupBy": [
-              {
-                "property": {
-                  "type": "string"
-                },
-                "type": "groupBy"
-              }
-            ],
-            "limit": 50
-          }
+          "useBackend": false
         }
       ],
-      "title": "Mesh Node Scoring System",
-      "transformations": [
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {},
-            "includeByName": {},
-            "indexByName": {},
-            "renameByName": {
-              "importance_score": "Importance Score",
-              "node_id": "Node ID",
-              "role": "Client Role",
-              "short_name": "Short Name",
-              "stability_score": "Stability Score"
-            }
-          }
-        }
-      ],
+      "title": "Total packets sent",
       "type": "stat"
     },
     {
@@ -157,7 +123,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 8,
+        "h": 4,
         "w": 13,
         "x": 5,
         "y": 0
@@ -271,81 +237,6 @@
     },
     {
       "datasource": {
-        "type": "datasource",
-        "uid": "-- Mixed --"
-      },
-      "description": "Total packets sent in specified time range",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "fieldMinMax": false,
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "Packets"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 5,
-        "x": 0,
-        "y": 4
-      },
-      "id": 10,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "11.1.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
-          },
-          "disableTextWrap": false,
-          "editorMode": "builder",
-          "expr": "sum(sum by(portnum) (mesh_packet_source_types_total{source_id=~\"$nodeID\"}))",
-          "fullMetaSearch": false,
-          "includeNullMetadata": true,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "A",
-          "useBackend": false
-        }
-      ],
-      "title": "Total packets sent",
-      "type": "stat"
-    },
-    {
-      "datasource": {
         "type": "postgres",
         "uid": "PA942B37CCFAF5A81"
       },
@@ -399,7 +290,7 @@
         "h": 4,
         "w": 24,
         "x": 0,
-        "y": 8
+        "y": 4
       },
       "id": 1,
       "options": {
@@ -424,7 +315,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT * FROM client_details WHERE node_id = '${nodeID}' LIMIT 1 ",
+          "rawSql": "SELECT * FROM node_details WHERE node_id = '${nodeID}' LIMIT 1 ",
           "refId": "A",
           "sql": {
             "columns": [
@@ -473,7 +364,7 @@
             },
             "whereString": "node_id = '${nodeID}'"
           },
-          "table": "client_details"
+          "table": "node_details"
         }
       ],
       "title": "Node details",
@@ -500,259 +391,15 @@
     },
     {
       "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "percentage",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "#EAB839",
-                "value": 20
-              },
-              {
-                "color": "green",
-                "value": 40
-              }
-            ]
-          },
-          "unit": "percent"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 5,
-        "w": 4,
-        "x": 0,
-        "y": 12
-      },
-      "id": 2,
-      "options": {
-        "minVizHeight": 75,
-        "minVizWidth": 75,
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showThresholdLabels": false,
-        "showThresholdMarkers": true,
-        "sizing": "auto"
-      },
-      "pluginVersion": "11.1.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
-          },
-          "disableTextWrap": false,
-          "editorMode": "builder",
-          "exemplar": false,
-          "expr": "telemetry_app_battery_level{node_id=\"$nodeID\"}",
-          "format": "time_series",
-          "fullMetaSearch": false,
-          "includeNullMetadata": true,
-          "instant": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "A",
-          "useBackend": false
-        }
-      ],
-      "title": "Battery Level",
-      "type": "gauge"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "volt"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 5,
-        "w": 4,
-        "x": 4,
-        "y": 12
-      },
-      "id": 3,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "11.1.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
-          },
-          "disableTextWrap": false,
-          "editorMode": "builder",
-          "expr": "telemetry_app_voltage{node_id=\"$nodeID\"}",
-          "fullMetaSearch": false,
-          "includeNullMetadata": true,
-          "instant": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "A",
-          "useBackend": false
-        }
-      ],
-      "title": "Device voltage",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "continuous-GrYlRd"
-          },
-          "custom": {
-            "fillOpacity": 70,
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineWidth": 0,
-            "spanNulls": false
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "celsius"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 5,
-        "w": 16,
-        "x": 8,
-        "y": 12
-      },
-      "id": 5,
-      "options": {
-        "alignValue": "center",
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": false
-        },
-        "mergeValues": true,
-        "rowHeight": 0.9,
-        "showValue": "auto",
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
-          },
-          "disableTextWrap": false,
-          "editorMode": "builder",
-          "exemplar": false,
-          "expr": "topk(1, telemetry_app_temperature{node_id=\"$nodeID\"})",
-          "fullMetaSearch": false,
-          "includeNullMetadata": true,
-          "instant": false,
-          "legendFormat": "{{long_name}}",
-          "range": true,
-          "refId": "A",
-          "useBackend": false
-        }
-      ],
-      "title": "Temprerature telemetry",
-      "transformations": [
-        {
-          "id": "seriesToRows",
-          "options": {}
-        },
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "Metric": true
-            },
-            "includeByName": {},
-            "indexByName": {},
-            "renameByName": {}
-          }
-        }
-      ],
-      "type": "state-timeline"
-    },
-    {
-      "datasource": {
         "type": "postgres",
         "uid": "PA942B37CCFAF5A81"
       },
       "description": "Graph that is built from Neighbor Info reports and shows the signal strenth for each line",
       "gridPos": {
-        "h": 10,
+        "h": 8,
         "w": 8,
         "x": 0,
-        "y": 17
+        "y": 8
       },
       "id": 9,
       "options": {
@@ -773,7 +420,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT \n    node_id AS \"id\", \n    long_name AS \"title\", \n    hardware_model AS \"detail__Hardware Detail\", \n    role AS \"detail__Client Role\", \n    mqtt_status AS \"detail__MQTT Status\", \n    short_name AS \"subtitle\",\n    CASE \n        WHEN mqtt_status = 'online' THEN '#2ECC71'  -- Green for online\n        WHEN mqtt_status = 'offline' THEN '#E74C3C' -- Red for offline\n        ELSE '#808080'                              -- Gray for none or any other status\n    END AS \"color\"\nFROM \n    client_details\n    WHERE node_id IN (${nodeID:singlequote}) OR node_id IN (${relatives:singlequote})",
+          "rawSql": "SELECT \n    node_id AS \"id\", \n    long_name AS \"title\", \n    hardware_model AS \"detail__Hardware Detail\", \n    role AS \"detail__Client Role\", \n    mqtt_status AS \"detail__MQTT Status\", \n    short_name AS \"subtitle\",\n    CASE \n        WHEN mqtt_status = 'online' THEN '#2ECC71'  -- Green for online\n        WHEN mqtt_status = 'offline' THEN '#E74C3C' -- Red for offline\n        ELSE '#808080'                              -- Gray for none or any other status\n    END AS \"color\"\nFROM \n    node_details\n    WHERE node_id IN (${nodeID:singlequote}) OR node_id IN (${relatives:singlequote})",
           "refId": "nodes",
           "sql": {
             "columns": [
@@ -848,7 +495,7 @@
             ],
             "limit": 50
           },
-          "table": "client_details"
+          "table": "node_details"
         },
         {
           "datasource": {
@@ -950,6 +597,102 @@
               }
             ]
           },
+          "unit": "celsius"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 16,
+        "x": 8,
+        "y": 8
+      },
+      "id": 5,
+      "options": {
+        "alignValue": "center",
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "mergeValues": true,
+        "rowHeight": 0.9,
+        "showValue": "auto",
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "P1809F7CD0C75ACF3"
+          },
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "exemplar": false,
+          "expr": "topk(1, telemetry_app_temperature{node_id=\"$nodeID\"})",
+          "fullMetaSearch": false,
+          "includeNullMetadata": true,
+          "instant": false,
+          "legendFormat": "{{long_name}}",
+          "range": true,
+          "refId": "A",
+          "useBackend": false
+        }
+      ],
+      "title": "Temprerature telemetry",
+      "transformations": [
+        {
+          "id": "seriesToRows",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Metric": true
+            },
+            "includeByName": {},
+            "indexByName": {},
+            "renameByName": {}
+          }
+        }
+      ],
+      "type": "state-timeline"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-GrYlRd"
+          },
+          "custom": {
+            "fillOpacity": 70,
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineWidth": 0,
+            "spanNulls": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
           "unit": "humidity"
         },
         "overrides": []
@@ -958,7 +701,7 @@
         "h": 5,
         "w": 16,
         "x": 8,
-        "y": 17
+        "y": 13
       },
       "id": 6,
       "options": {
@@ -1017,6 +760,193 @@
     },
     {
       "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 0,
+        "y": 16
+      },
+      "id": 13,
+      "options": {
+        "basemap": {
+          "config": {},
+          "name": "Layer 0",
+          "tooltip": true,
+          "type": "osm-standard"
+        },
+        "controls": {
+          "mouseWheelZoom": true,
+          "showAttribution": true,
+          "showDebug": false,
+          "showMeasure": false,
+          "showScale": true,
+          "showZoom": true
+        },
+        "layers": [
+          {
+            "config": {
+              "showLegend": false,
+              "style": {
+                "color": {
+                  "fixed": "dark-green"
+                },
+                "opacity": 0.4,
+                "rotation": {
+                  "fixed": 0,
+                  "max": 360,
+                  "min": -360,
+                  "mode": "mod"
+                },
+                "size": {
+                  "fixed": 5,
+                  "max": 15,
+                  "min": 2
+                },
+                "symbol": {
+                  "fixed": "img/icons/marker/circle.svg",
+                  "mode": "fixed"
+                },
+                "symbolAlign": {
+                  "horizontal": "center",
+                  "vertical": "center"
+                },
+                "textConfig": {
+                  "fontSize": 12,
+                  "offsetX": 0,
+                  "offsetY": 0,
+                  "textAlign": "center",
+                  "textBaseline": "middle"
+                }
+              }
+            },
+            "filterData": {
+              "id": "byRefId",
+              "options": "A"
+            },
+            "location": {
+              "latitude": "latitude_norm",
+              "longitude": "longitude_norm",
+              "mode": "coords"
+            },
+            "name": "Layer 1",
+            "tooltip": true,
+            "type": "markers"
+          }
+        ],
+        "tooltip": {
+          "mode": "none"
+        },
+        "view": {
+          "allLayers": true,
+          "id": "fit",
+          "lastOnly": false,
+          "lat": 0,
+          "layer": "Layer 1",
+          "lon": 0,
+          "zoom": 15
+        }
+      },
+      "pluginVersion": "11.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT * ,\nlongitude * 1e-7 as \"longitude_norm\",\nlatitude * 1e-7 as \"latitude_norm\"\nFROM node_details \nWHERE node_id = '${nodeID}' LIMIT 1",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [
+                  {
+                    "name": "*",
+                    "type": "functionParameter"
+                  }
+                ],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50,
+            "whereJsonTree": {
+              "children1": [
+                {
+                  "id": "abb9a8b8-4567-489a-bcde-f190ef655acf",
+                  "properties": {
+                    "field": "node_id",
+                    "fieldSrc": "field",
+                    "operator": "equal",
+                    "value": [
+                      "${nodeID}"
+                    ],
+                    "valueError": [
+                      null
+                    ],
+                    "valueSrc": [
+                      "value"
+                    ],
+                    "valueType": [
+                      "text"
+                    ]
+                  },
+                  "type": "rule"
+                }
+              ],
+              "id": "aabba98a-0123-4456-b89a-b190ef5f79f0",
+              "properties": {
+                "conjunction": "AND"
+              },
+              "type": "group"
+            },
+            "whereString": "node_id = '${nodeID}'"
+          },
+          "table": "node_details"
+        }
+      ],
+      "title": "Panel Title",
+      "type": "geomap"
+    },
+    {
+      "datasource": {
         "type": "prometheus",
         "uid": "P1809F7CD0C75ACF3"
       },
@@ -1054,7 +984,7 @@
         "h": 5,
         "w": 16,
         "x": 8,
-        "y": 22
+        "y": 18
       },
       "id": 7,
       "options": {
@@ -1110,6 +1040,210 @@
         }
       ],
       "type": "state-timeline"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "axisSoftMax": 110,
+            "axisSoftMin": 0,
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 5,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "area"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "percentage",
+            "steps": [
+              {
+                "color": "red"
+              },
+              {
+                "color": "#EAB839",
+                "value": 20
+              },
+              {
+                "color": "green",
+                "value": 40
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 23
+      },
+      "id": 2,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "11.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "P1809F7CD0C75ACF3"
+          },
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "exemplar": false,
+          "expr": "telemetry_app_battery_level{node_id=\"$nodeID\"}",
+          "format": "time_series",
+          "fullMetaSearch": false,
+          "includeNullMetadata": true,
+          "instant": false,
+          "legendFormat": "{{long_name}} | Model: {{hardware_model}} | Role: {{role}}",
+          "range": true,
+          "refId": "A",
+          "useBackend": false
+        }
+      ],
+      "title": "Battery Level",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 5,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              }
+            ]
+          },
+          "unit": "volt"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 23
+      },
+      "id": 3,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "11.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "P1809F7CD0C75ACF3"
+          },
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "expr": "telemetry_app_voltage{node_id=\"$nodeID\"}",
+          "fullMetaSearch": false,
+          "includeNullMetadata": true,
+          "instant": false,
+          "legendFormat": "{{long_name}} | Model: {{hardware_model}} | Role: {{role}}",
+          "range": true,
+          "refId": "A",
+          "useBackend": false
+        }
+      ],
+      "title": "Device voltage",
+      "type": "timeseries"
     }
   ],
   "schemaVersion": 39,
@@ -1119,21 +1253,21 @@
       {
         "current": {
           "selected": false,
-          "text": "🐦‍🔥:34GL3 (3944975137)",
-          "value": "3944975137"
+          "text": "🤫 (3663649648)",
+          "value": "3663649648"
         },
         "datasource": {
           "type": "postgres",
           "uid": "PA942B37CCFAF5A81"
         },
-        "definition": "SELECT \n  concat(long_name, ' (', node_id, ')') as __text, \n  node_id as __value \nFROM client_details \nORDER BY long_name",
+        "definition": "SELECT \n  concat(long_name, ' (', node_id, ')') as __text, \n  node_id as __value \nFROM node_details \nORDER BY long_name",
         "hide": 0,
         "includeAll": false,
         "label": "Node ID",
         "multi": false,
         "name": "nodeID",
         "options": [],
-        "query": "SELECT \n  concat(long_name, ' (', node_id, ')') as __text, \n  node_id as __value \nFROM client_details \nORDER BY long_name",
+        "query": "SELECT \n  concat(long_name, ' (', node_id, ')') as __text, \n  node_id as __value \nFROM node_details \nORDER BY long_name",
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
@@ -1142,9 +1276,10 @@
       },
       {
         "current": {
+          "isNone": true,
           "selected": false,
-          "text": "1129710492",
-          "value": "1129710492"
+          "text": "None",
+          "value": ""
         },
         "datasource": {
           "type": "postgres",
@@ -1175,6 +1310,6 @@
   "timezone": "browser",
   "title": "Node Dashboard",
   "uid": "edqo1uh0eglq8g",
-  "version": 2,
+  "version": 4,
   "weekStart": ""
 }

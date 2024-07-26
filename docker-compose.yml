@@ -43,7 +43,7 @@ services:
       - mesh-bridge
 
   postgres:
-    image: postgres:13.3
+    image: postgres:16.3
     restart: unless-stopped
     networks:
       - mesh-bridge

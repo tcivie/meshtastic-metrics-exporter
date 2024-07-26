@@ -11,14 +11,40 @@
         "hide": true,
         "iconColor": "rgba(0, 211, 255, 1)",
         "name": "Annotations & Alerts",
+        "target": {
+          "limit": 100,
+          "matchAny": true,
+          "tags": [
+            "server"
+          ],
+          "type": "dashboard"
+        },
         "type": "dashboard"
+      },
+      {
+        "datasource": {
+          "type": "datasource",
+          "uid": "grafana"
+        },
+        "enable": true,
+        "iconColor": "light-yellow",
+        "name": "Annotations",
+        "target": {
+          "limit": 100,
+          "matchAny": true,
+          "tags": [
+            "server",
+            "MQTT"
+          ],
+          "type": "tags"
+        }
       }
     ]
   },
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 11,
+  "id": 1,
   "links": [],
   "panels": [
     {
@@ -39,10 +65,6 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
           },
@@ -83,7 +105,7 @@
           },
           "editorMode": "builder",
           "format": "table",
-          "rawSql": "SELECT COUNT(node_id) FROM client_details WHERE node_id <> '0' LIMIT 50 ",
+          "rawSql": "SELECT COUNT(node_id) FROM node_details WHERE node_id <> '0' LIMIT 50 ",
           "refId": "A",
           "sql": {
             "columns": [
@@ -129,10 +151,84 @@
             },
             "whereString": "node_id <> '0'"
           },
-          "table": "client_details"
+          "table": "node_details"
         }
       ],
       "title": "Total nodes in mesh",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
+      "description": "Nodes that sent any packet in the last 30 minutes",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 5,
+        "x": 4,
+        "y": 0
+      },
+      "id": 21,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": true,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "P1809F7CD0C75ACF3"
+          },
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "expr": "sum(count by(source_id) (count by(source_id) (delta(mesh_packet_ids_created{source_id=~\"$Nodes\"}[30m]))))",
+          "fullMetaSearch": false,
+          "includeNullMetadata": true,
+          "instant": false,
+          "legendFormat": "{{source_long_name}}",
+          "range": true,
+          "refId": "A",
+          "useBackend": false
+        }
+      ],
+      "title": "Active nodes in the last 30 minutes",
       "type": "stat"
     },
     {
@@ -184,7 +280,7 @@
       "gridPos": {
         "h": 4,
         "w": 5,
-        "x": 4,
+        "x": 9,
         "y": 0
       },
       "id": 17,
@@ -214,7 +310,7 @@
           },
           "editorMode": "builder",
           "format": "table",
-          "rawSql": "SELECT COUNT(mqtt_status), mqtt_status FROM client_details WHERE (COALESCE(mqtt_status, '') <> '' AND mqtt_status NOT LIKE '%none%') GROUP BY mqtt_status LIMIT 50 ",
+          "rawSql": "SELECT COUNT(mqtt_status), mqtt_status FROM node_details WHERE (COALESCE(mqtt_status, '') <> '' AND mqtt_status NOT LIKE '%none%') GROUP BY mqtt_status LIMIT 50 ",
           "refId": "A",
           "sql": {
             "columns": [
@@ -292,7 +388,7 @@
             },
             "whereString": "(COALESCE(mqtt_status, '') <> '' AND mqtt_status NOT LIKE '%none%')"
           },
-          "table": "client_details"
+          "table": "node_details"
         }
       ],
       "title": "MQTT Node status",
@@ -319,14 +415,14 @@
               }
             ]
           },
-          "unit": "chars"
+          "unit": "bytes"
         },
         "overrides": []
       },
       "gridPos": {
         "h": 4,
         "w": 5,
-        "x": 9,
+        "x": 14,
         "y": 0
       },
       "id": 6,
@@ -356,109 +452,18 @@
           },
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "sum by(source_id) (mesh_packet_want_ack_total)",
+          "expr": "histogram_quantile(0.95, sum by(le) (rate(text_message_app_size_in_bytes_bucket{source_id=~\"$Nodes\"}[$__rate_interval])))",
           "fullMetaSearch": false,
-          "hide": true,
+          "hide": false,
           "includeNullMetadata": false,
           "instant": false,
           "legendFormat": "__auto",
           "range": true,
           "refId": "A",
           "useBackend": false
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
-          },
-          "disableTextWrap": false,
-          "editorMode": "builder",
-          "expr": "histogram_quantile(0.95, sum by(le) (rate(text_message_app_length_bucket{node_id=~\"$Nodes\"}[$__rate_interval])))",
-          "fullMetaSearch": false,
-          "hide": false,
-          "includeNullMetadata": false,
-          "instant": false,
-          "legendFormat": "{{long_name}}",
-          "range": true,
-          "refId": "B",
-          "useBackend": false
         }
       ],
-      "title": "Typical Maximum Message Length",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
-      "description": "Nodes that sent any packet in the last 30 minutes",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 5,
-        "x": 14,
-        "y": 0
-      },
-      "id": 21,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": true,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "11.1.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
-          },
-          "disableTextWrap": false,
-          "editorMode": "builder",
-          "expr": "sum(count by(source_id) (count by(source_id) (delta(mesh_packet_ids_created{source_id=~\"$Nodes\"}[30m]))))",
-          "fullMetaSearch": false,
-          "includeNullMetadata": true,
-          "instant": false,
-          "legendFormat": "{{source_long_name}}",
-          "range": true,
-          "refId": "A",
-          "useBackend": false
-        }
-      ],
-      "title": "Active nodes in the last 30 minutes",
+      "title": "Typical Maximum Message Length in Bytes",
       "type": "stat"
     },
     {
@@ -551,15 +556,264 @@
     },
     {
       "datasource": {
-        "type": "postgres",
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
+      "description": "Shows the max recorded chanel utilization and the average",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds",
+            "seriesBy": "last"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "axisSoftMax": 11,
+            "axisSoftMin": 7,
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": 3600000,
+            "lineInterpolation": "linear",
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "dashed+area"
+            }
+          },
+          "fieldMinMax": false,
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 10
+              },
+              {
+                "color": "red",
+                "value": 20
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 11,
+        "x": 0,
+        "y": 5
+      },
+      "id": 23,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max",
+            "mean"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "P1809F7CD0C75ACF3"
+          },
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "expr": "max(telemetry_app_channel_utilization{node_id=~\"$Nodes\"})",
+          "fullMetaSearch": false,
+          "hide": true,
+          "includeNullMetadata": true,
+          "instant": false,
+          "legendFormat": "Chanel utilization (Max)",
+          "range": true,
+          "refId": "Max Chanel Utilization recorded",
+          "useBackend": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "P1809F7CD0C75ACF3"
+          },
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "expr": "avg(telemetry_app_channel_utilization{node_id=~\"$Nodes\"})",
+          "fullMetaSearch": false,
+          "hide": false,
+          "includeNullMetadata": true,
+          "instant": false,
+          "legendFormat": "Chanel utilization (Avg)",
+          "range": true,
+          "refId": "Average Chanel Utilization",
+          "useBackend": false
+        }
+      ],
+      "title": "Channel Utilization (ChUtil)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
+      "description": "This panel shows the percentage of airtime used for transmissions in the last hour. Airtime in LoRa networks represents the duration a device occupies the radio frequency channel to send data. It's a critical metric for:\n\nNetwork capacity: Higher airtime usage indicates increased network load.\n\nRegulatory compliance: Many regions limit the total airtime per device.\n\nBattery life: More airtime generally means higher power consumption.\n\nThe data comes from Meshtastic packets, reflecting actual network usage. High percentages may suggest the need for optimization or capacity planning.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "axisSoftMax": 6.5,
+            "barAlignment": 0,
+            "drawStyle": "points",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "dashed+area"
+            }
+          },
+          "fieldMinMax": false,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 5
+              },
+              {
+                "color": "red",
+                "value": 8
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 13,
+        "x": 11,
+        "y": 5
+      },
+      "id": 3,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "sortBy": "Mean",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "10.4.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "P1809F7CD0C75ACF3"
+          },
+          "disableTextWrap": false,
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "telemetry_app_air_util_tx{node_id=~\"$Nodes\"} > -100\nand\ndelta(telemetry_app_air_util_tx{node_id=~\"$Nodes\"}[1m]) != 0",
+          "format": "time_series",
+          "fullMetaSearch": false,
+          "includeNullMetadata": false,
+          "instant": false,
+          "legendFormat": "{{long_name}}",
+          "range": true,
+          "refId": "A",
+          "useBackend": false
+        }
+      ],
+      "title": "Duty Cycle (AirUtilTX)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
         "uid": "PA942B37CCFAF5A81"
       },
       "description": "Graph that is built from Neighbor Info reports and shows the signal strenth for each line",
       "gridPos": {
-        "h": 29,
-        "w": 6,
+        "h": 32,
+        "w": 11,
         "x": 0,
-        "y": 5
+        "y": 14
       },
       "id": 20,
       "options": {
@@ -580,7 +834,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT \n    node_id AS \"id\", \n    long_name AS \"title\", \n    hardware_model AS \"detail__Hardware Detail\", \n    role AS \"detail__Client Role\", \n    mqtt_status AS \"detail__MQTT Status\", \n    short_name AS \"subtitle\",\n    CASE \n        WHEN mqtt_status = 'online' THEN '#2ECC71'  -- Green for online\n        WHEN mqtt_status = 'offline' THEN '#E74C3C' -- Red for offline\n        ELSE '#808080'                              -- Gray for none or any other status\n    END AS \"color\"\nFROM \n    client_details",
+          "rawSql": "SELECT DISTINCT\n    cd.node_id AS \"id\",\n    cd.long_name AS \"title\",\n    cd.hardware_model AS \"detail__Hardware Detail\",\n    cd.role AS \"detail__Client Role\",\n    cd.mqtt_status AS \"detail__MQTT Status\",\n    cd.short_name AS \"subtitle\",\n    CASE\n        WHEN cd.mqtt_status = 'online' THEN '#2ECC71' -- Green for online\n        WHEN cd.mqtt_status = 'offline' THEN '#E74C3C' -- Red for offline\n        ELSE '#808080' -- Gray for none or any other status\n    END AS \"color\"\nFROM\n    node_details cd\nLEFT JOIN (\n    SELECT node_id FROM node_neighbors\n    UNION\n    SELECT neighbor_id FROM node_neighbors\n) nn ON cd.node_id = nn.node_id\nWHERE nn.node_id IS NOT NULL",
           "refId": "nodes",
           "sql": {
             "columns": [
@@ -655,7 +909,7 @@
             ],
             "limit": 50
           },
-          "table": "client_details"
+          "table": "node_details"
         },
         {
           "datasource": {
@@ -728,117 +982,6 @@
     },
     {
       "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
-      "description": "This panel shows the percentage of airtime used for transmissions in the last hour. Airtime in LoRa networks represents the duration a device occupies the radio frequency channel to send data. It's a critical metric for:\n\nNetwork capacity: Higher airtime usage indicates increased network load.\n\nRegulatory compliance: Many regions limit the total airtime per device.\n\nBattery life: More airtime generally means higher power consumption.\n\nThe data comes from Meshtastic packets, reflecting actual network usage. High percentages may suggest the need for optimization or capacity planning.",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "points",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "area"
-            }
-          },
-          "fieldMinMax": false,
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 12
-              },
-              {
-                "color": "red",
-                "value": 20
-              }
-            ]
-          },
-          "unit": "percent"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 9,
-        "w": 18,
-        "x": 6,
-        "y": 5
-      },
-      "id": 3,
-      "options": {
-        "legend": {
-          "calcs": [
-            "mean"
-          ],
-          "displayMode": "table",
-          "placement": "right",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "10.4.2",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
-          },
-          "disableTextWrap": false,
-          "editorMode": "code",
-          "exemplar": false,
-          "expr": "telemetry_app_air_util_tx{node_id=~\"$Nodes\"} > -100\nand\ndelta(telemetry_app_air_util_tx{node_id=~\"$Nodes\"}[1m]) != 0",
-          "format": "time_series",
-          "fullMetaSearch": false,
-          "includeNullMetadata": false,
-          "instant": false,
-          "legendFormat": "{{long_name}}",
-          "range": true,
-          "refId": "A",
-          "useBackend": false
-        }
-      ],
-      "title": "Percent of airtime for transmission used within the last hour",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
         "type": "datasource",
         "uid": "-- Mixed --"
       },
@@ -865,13 +1008,14 @@
       "gridPos": {
         "h": 10,
         "w": 5,
-        "x": 6,
+        "x": 11,
         "y": 14
       },
       "id": 5,
       "options": {
         "displayLabels": [
-          "name"
+          "name",
+          "percent"
         ],
         "legend": {
           "displayMode": "list",
@@ -923,7 +1067,10 @@
           "color": {
             "mode": "thresholds"
           },
+          "fieldMinMax": false,
           "mappings": [],
+          "max": 7,
+          "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -947,8 +1094,8 @@
       },
       "gridPos": {
         "h": 10,
-        "w": 13,
-        "x": 11,
+        "w": 8,
+        "x": 16,
         "y": 14
       },
       "id": 9,
@@ -1064,7 +1211,7 @@
                   {
                     "targetBlank": true,
                     "title": "Go to node dashboard",
-                    "url": "http://grafana.mesh-il.com:3000/d/edqo1uh0eglq8f/node-dashboard?orgId=1&var-nodeID=${__data.fields[0]}"
+                    "url": "http://grafana.mesh-il.com:3000/d/edqo1uh0eglq8g/node-dashboard?orgId=1&var-nodeID=${__data.fields[0]}"
                   }
                 ]
               },
@@ -1076,13 +1223,37 @@
                 }
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Record Created At"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeAsLocal"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Client Role"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 126
+              }
+            ]
           }
         ]
       },
       "gridPos": {
-        "h": 10,
-        "w": 18,
-        "x": 6,
+        "h": 22,
+        "w": 13,
+        "x": 11,
         "y": 24
       },
       "id": 14,
@@ -1115,7 +1286,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT * FROM client_details WHERE node_id <> '0'",
+          "rawSql": "SELECT * FROM node_details WHERE node_id <> '0'",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1164,7 +1335,7 @@
             },
             "whereString": "node_id <> '0'"
           },
-          "table": "client_details"
+          "table": "node_details"
         }
       ],
       "title": "General Information",
@@ -1185,6 +1356,7 @@
             "includeByName": {},
             "indexByName": {},
             "renameByName": {
+              "created_at": "Record Created At",
               "hardware_model": "Hardware Model",
               "long_name": "Long name",
               "mqtt_status": "MQTT Status",
@@ -1199,8 +1371,8 @@
     },
     {
       "datasource": {
-        "type": "datasource",
-        "uid": "-- Mixed --"
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
       },
       "description": "Displays the nodes on the map",
       "fieldConfig": {
@@ -1250,10 +1422,10 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 11,
+        "h": 25,
         "w": 24,
         "x": 0,
-        "y": 34
+        "y": 46
       },
       "id": 8,
       "options": {
@@ -1315,9 +1487,13 @@
                 }
               }
             },
+            "filterData": {
+              "id": "byRefId",
+              "options": "Nodes"
+            },
             "location": {
-              "latitude": "Value #Latitude",
-              "longitude": "Value #Longitude",
+              "latitude": "latitude_norm",
+              "longitude": "longitude_norm",
               "mode": "coords"
             },
             "name": "Layer 1",
@@ -1341,74 +1517,6 @@
       "targets": [
         {
           "datasource": {
-            "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
-          },
-          "editorMode": "code",
-          "exemplar": false,
-          "expr": "device_longitude{node_id=~\"$Nodes\"} * 1e-7",
-          "format": "table",
-          "hide": false,
-          "instant": true,
-          "legendFormat": "__auto",
-          "range": false,
-          "refId": "Longitude"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
-          },
-          "editorMode": "code",
-          "exemplar": false,
-          "expr": "device_latitude{node_id=~\"$Nodes\"} * 1e-7",
-          "format": "table",
-          "hide": false,
-          "instant": true,
-          "legendFormat": "__auto",
-          "range": false,
-          "refId": "Latitude"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
-          },
-          "disableTextWrap": false,
-          "editorMode": "code",
-          "exemplar": false,
-          "expr": "device_position_precision{node_id=~\"$Nodes\"}",
-          "format": "table",
-          "fullMetaSearch": false,
-          "hide": false,
-          "includeNullMetadata": true,
-          "instant": true,
-          "legendFormat": "__auto",
-          "range": false,
-          "refId": "Precision",
-          "useBackend": false
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
-          },
-          "disableTextWrap": false,
-          "editorMode": "code",
-          "exemplar": false,
-          "expr": "device_altitude{node_id=~\"$Nodes\"}",
-          "format": "table",
-          "fullMetaSearch": false,
-          "hide": false,
-          "includeNullMetadata": true,
-          "instant": true,
-          "legendFormat": "__auto",
-          "range": false,
-          "refId": "Elevation",
-          "useBackend": false
-        },
-        {
-          "datasource": {
             "type": "postgres",
             "uid": "PA942B37CCFAF5A81"
           },
@@ -1416,8 +1524,8 @@
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "SELECT * FROM client_details",
-          "refId": "A",
+          "rawSql": "SELECT * FROM node_details WHERE longitude != 0 AND longitude IS NOT NULL",
+          "refId": "Nodes",
           "sql": {
             "columns": [
               {
@@ -1440,18 +1548,11 @@
             ],
             "limit": 50
           },
-          "table": "client_details"
+          "table": "node_details"
         }
       ],
       "title": "Nodes map",
       "transformations": [
-        {
-          "id": "joinByField",
-          "options": {
-            "byField": "node_id",
-            "mode": "outer"
-          }
-        },
         {
           "id": "organize",
           "options": {
@@ -1500,122 +1601,47 @@
               "short_name 1": "Short Name"
             }
           }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "longitude_norm",
+            "binary": {
+              "left": "longitude",
+              "operator": "*",
+              "right": "1e-7"
+            },
+            "mode": "binary",
+            "reduce": {
+              "include": [
+                "longitude",
+                "latitude"
+              ],
+              "reducer": "sum"
+            },
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "latitude_norm",
+            "binary": {
+              "left": "latitude",
+              "operator": "*",
+              "right": "1e-7"
+            },
+            "mode": "binary",
+            "reduce": {
+              "reducer": "sum"
+            }
+          }
         }
       ],
       "type": "geomap"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
-      "description": "Last reported battely value of the nodes",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "smooth",
-            "lineStyle": {
-              "fill": "solid"
-            },
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "dashed+area"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red"
-              },
-              {
-                "color": "yellow",
-                "value": 20
-              },
-              {
-                "color": "green",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "percent"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 11,
-        "w": 24,
-        "x": 0,
-        "y": 45
-      },
-      "id": 11,
-      "options": {
-        "legend": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "displayMode": "table",
-          "placement": "right",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "10.4.2",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
-          },
-          "disableTextWrap": false,
-          "editorMode": "builder",
-          "expr": "telemetry_app_battery_level{node_id=~\"$Nodes\"}",
-          "fullMetaSearch": false,
-          "includeNullMetadata": true,
-          "instant": false,
-          "legendFormat": "{{long_name}}",
-          "range": true,
-          "refId": "A",
-          "useBackend": false
-        }
-      ],
-      "title": "Nodes Battery report",
-      "type": "timeseries"
     }
   ],
-  "refresh": "1m",
+  "refresh": "5m",
   "schemaVersion": 39,
   "tags": [],
   "templating": {
@@ -1630,14 +1656,14 @@
           "type": "postgres",
           "uid": "PA942B37CCFAF5A81"
         },
-        "definition": "SELECT \n  concat(long_name, ' (', node_id, ')') as __text, \n  node_id as __value \nFROM client_details \nORDER BY long_name",
+        "definition": "SELECT \n  concat(long_name, ' (', node_id, ')') as __text, \n  node_id as __value \nFROM node_details \nORDER BY long_name",
         "hide": 0,
         "includeAll": true,
         "label": "Nodes",
         "multi": true,
         "name": "Nodes",
         "options": [],
-        "query": "SELECT \n  concat(long_name, ' (', node_id, ')') as __text, \n  node_id as __value \nFROM client_details \nORDER BY long_name",
+        "query": "SELECT \n  concat(long_name, ' (', node_id, ')') as __text, \n  node_id as __value \nFROM node_details \nORDER BY long_name",
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
@@ -1647,13 +1673,13 @@
     ]
   },
   "time": {
-    "from": "now-24h",
+    "from": "now-1h",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "browser",
   "title": "Main Dashboard",
   "uid": "edqkge9mf7v28g",
-  "version": 2,
+  "version": 5,
   "weekStart": "sunday"
 }

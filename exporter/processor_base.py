@@ -1,5 +1,6 @@
 import base64
 import os
+import sys
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -11,7 +12,7 @@ except ImportError:
     from meshtastic.protobuf.mesh_pb2 import MeshPacket, Data, HardwareModel
     from meshtastic.protobuf.portnums_pb2 import PortNum
 
-from prometheus_client import CollectorRegistry, Counter, Histogram, Gauge
+from prometheus_client import CollectorRegistry, Counter, Gauge
 from psycopg_pool import ConnectionPool
 
 from exporter.client_details import ClientDetails
@@ -20,6 +21,7 @@ from exporter.processors import ProcessorRegistry
 
 class MessageProcessor:
     def __init__(self, registry: CollectorRegistry, db_pool: ConnectionPool):
+        self.message_size_in_bytes = None
         self.rx_rssi_gauge = None
         self.channel_counter = None
         self.packet_id_counter = None
@@ -44,6 +46,17 @@ class MessageProcessor:
             'destination_role'
         ]
 
+        reduced_labels = [
+            'source_id', 'destination_id'
+        ]
+
+        self.message_size_in_bytes = Gauge(
+            'text_message_app_size_in_bytes',
+            'Size of text messages processed by the app in Bytes',
+            reduced_labels + ['portnum'],
+            registry=self.registry
+        )
+
         self.source_message_type_counter = Counter(
             'mesh_packet_source_types',
             'Types of mesh packets processed by source',
@@ -65,7 +78,7 @@ class MessageProcessor:
             registry=self.registry
         )
         # Histogram for the rx_time (time in seconds)
-        self.rx_time_histogram = Histogram(
+        self.rx_time_histogram = Gauge(
             'mesh_packet_rx_time',
             'Receive time of mesh packets (seconds since 1970)',
             common_labels,
@@ -165,9 +178,6 @@ class MessageProcessor:
                                                            short_name='Hidden',
                                                            long_name='Hidden')
 
-            if port_num in map(int, os.getenv('FILTERED_PORTS', '1').split(',')):  # Filter out ports
-                return None  # Ignore this packet
-
             self.process_simple_packet_details(destination_client_details, mesh_packet, port_num, source_client_details)
 
             processor = ProcessorRegistry.get_processor(port_num)(self.registry, self.db_pool)
@@ -184,7 +194,8 @@ class MessageProcessor:
                 return enum_value.name
         return 'UNKNOWN_PORT'
 
-    def process_simple_packet_details(self, destination_client_details, mesh_packet, port_num, source_client_details):
+    def process_simple_packet_details(self, destination_client_details, mesh_packet: MeshPacket, port_num,
+                                      source_client_details):
         common_labels = {
             'source_id': source_client_details.node_id,
             'source_short_name': source_client_details.short_name,
@@ -197,6 +208,16 @@ class MessageProcessor:
             'destination_hardware_model': destination_client_details.hardware_model,
             'destination_role': destination_client_details.role,
         }
+
+        reduced_labels = {
+            'source_id': source_client_details.node_id,
+            'destination_id': destination_client_details.node_id
+        }
+
+        self.message_size_in_bytes.labels(
+            **reduced_labels,
+            portnum=self.get_port_name_from_portnum(port_num)
+        ).set(sys.getsizeof(mesh_packet))
 
         self.source_message_type_counter.labels(
             **common_labels,
@@ -214,7 +235,7 @@ class MessageProcessor:
 
         self.rx_time_histogram.labels(
             **common_labels
-        ).observe(mesh_packet.rx_time)
+        ).set(mesh_packet.rx_time)
 
         self.rx_snr_gauge.labels(
             **common_labels
@@ -261,7 +282,7 @@ class MessageProcessor:
                 # First, try to select the existing record
                 cur.execute("""
                     SELECT node_id, short_name, long_name, hardware_model, role 
-                    FROM client_details 
+                    FROM node_details 
                     WHERE node_id = %s;
                 """, (node_id_str,))
                 result = cur.fetchone()
@@ -269,7 +290,7 @@ class MessageProcessor:
                 if not result:
                     # If the client is not found, insert a new record
                     cur.execute("""
-                        INSERT INTO client_details (node_id, short_name, long_name, hardware_model, role)
+                        INSERT INTO node_details (node_id, short_name, long_name, hardware_model, role)
                         VALUES (%s, %s, %s, %s, %s)
                         RETURNING node_id, short_name, long_name, hardware_model, role;
                     """, (node_id_str, 'Unknown', 'Unknown', HardwareModel.UNSET, None))
