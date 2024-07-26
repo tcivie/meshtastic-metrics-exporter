@@ -80,12 +80,7 @@ class UnknownAppProcessor(Processor):
 class TextMessageAppProcessor(Processor):
     def process(self, payload: bytes, client_details: ClientDetails):
         logger.debug("Received TEXT_MESSAGE_APP packet")
-        message = payload.decode('utf-8')
-        if os.getenv('HIDE_MESSAGE', 'true') == 'true':
-            message = 'Hidden'
-        self.metrics.message_length_histogram.labels(
-            **client_details.to_dict()
-        ).observe(len(message))
+        pass
 
 
 @ProcessorRegistry.register_processor(PortNum.REMOTE_HARDWARE_APP)
