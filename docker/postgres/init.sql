@@ -1,3 +1,5 @@
+CREATE EXTENSION IF NOT EXISTS moddatetime;
+
 CREATE TABLE IF NOT EXISTS messages
 (
     id          TEXT PRIMARY KEY,
@@ -29,13 +31,10 @@ CREATE TABLE IF NOT EXISTS node_details
     role        VARCHAR,
     mqtt_status VARCHAR   default 'none',
 --     Location Data
-    longitude   FLOAT,
-    latitude    FLOAT,
-    altitude    FLOAT,
-    precision   FLOAT,
-    country     VARCHAR,
-    city        VARCHAR,
-    state       VARCHAR,
+    longitude INT,
+    latitude  INT,
+    altitude  INT,
+    precision INT,
 --     SQL Data
     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL

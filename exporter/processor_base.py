@@ -12,7 +12,7 @@ except ImportError:
     from meshtastic.protobuf.mesh_pb2 import MeshPacket, Data, HardwareModel
     from meshtastic.protobuf.portnums_pb2 import PortNum
 
-from prometheus_client import CollectorRegistry, Counter, Histogram, Gauge
+from prometheus_client import CollectorRegistry, Counter, Gauge
 from psycopg_pool import ConnectionPool
 
 from exporter.client_details import ClientDetails
@@ -46,10 +46,14 @@ class MessageProcessor:
             'destination_role'
         ]
 
-        self.message_size_in_bytes = Histogram(
+        reduced_labels = [
+            'source_id', 'destination_id'
+        ]
+
+        self.message_size_in_bytes = Gauge(
             'text_message_app_size_in_bytes',
             'Size of text messages processed by the app in Bytes',
-            common_labels + ['portnum'],
+            reduced_labels + ['portnum'],
             registry=self.registry
         )
 
@@ -74,7 +78,7 @@ class MessageProcessor:
             registry=self.registry
         )
         # Histogram for the rx_time (time in seconds)
-        self.rx_time_histogram = Histogram(
+        self.rx_time_histogram = Gauge(
             'mesh_packet_rx_time',
             'Receive time of mesh packets (seconds since 1970)',
             common_labels,
@@ -205,10 +209,15 @@ class MessageProcessor:
             'destination_role': destination_client_details.role,
         }
 
+        reduced_labels = {
+            'source_id': source_client_details.node_id,
+            'destination_id': destination_client_details.node_id
+        }
+
         self.message_size_in_bytes.labels(
-            **common_labels,
+            **reduced_labels,
             portnum=self.get_port_name_from_portnum(port_num)
-        ).observe(sys.getsizeof(mesh_packet))
+        ).set(sys.getsizeof(mesh_packet))
 
         self.source_message_type_counter.labels(
             **common_labels,
@@ -226,7 +235,7 @@ class MessageProcessor:
 
         self.rx_time_histogram.labels(
             **common_labels
-        ).observe(mesh_packet.rx_time)
+        ).set(mesh_packet.rx_time)
 
         self.rx_snr_gauge.labels(
             **common_labels

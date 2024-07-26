@@ -167,7 +167,7 @@ class NodeInfoAppProcessor(Processor):
 
             conn.commit()
 
-        self.metrics.db.execute_db_operation(db_operation)
+        self.metrics.get_db().execute_db_operation(db_operation)
 
 
 @ProcessorRegistry.register_processor(PortNum.ROUTING_APP)
@@ -499,23 +499,7 @@ class NeighborInfoAppProcessor(Processor):
         except Exception as e:
             logger.error(f"Failed to parse NEIGHBORINFO_APP packet: {e}")
             return
-        self.update_node_graph(neighbor_info, client_details)
         self.update_node_neighbors(neighbor_info, client_details)
-
-    def update_node_graph(self, neighbor_info: NeighborInfo, client_details: ClientDetails):
-        def operation(cur, conn):
-            cur.execute("""
-                INSERT INTO node_graph (node_id, last_sent_by_node_id, broadcast_interval_secs)
-                VALUES (%s, %s, %s)
-                ON CONFLICT (node_id) 
-                DO UPDATE SET 
-                    last_sent_by_node_id = EXCLUDED.last_sent_by_node_id,
-                    broadcast_interval_secs = EXCLUDED.broadcast_interval_secs,
-                    last_sent_at = CURRENT_TIMESTAMP
-            """, (client_details.node_id, neighbor_info.last_sent_by_id, neighbor_info.node_broadcast_interval_secs))
-            conn.commit()
-
-        self.metrics.db.execute_db_operation(operation)
 
     def update_node_neighbors(self, neighbor_info: NeighborInfo, client_details: ClientDetails):
         def operation(cur, conn):
@@ -549,7 +533,7 @@ class NeighborInfoAppProcessor(Processor):
 
             conn.commit()
 
-        self.metrics.db.execute_db_operation(operation)
+        self.metrics.get_db().execute_db_operation(operation)
 
 
 @ProcessorRegistry.register_processor(PortNum.ATAK_PLUGIN)

@@ -1,4 +1,5 @@
-import geopy.point
+import uuid
+
 from geopy.geocoders import Nominatim
 from prometheus_client import CollectorRegistry, Counter, Gauge
 
@@ -19,8 +20,11 @@ class _Metrics:
             self._registry = registry
             self._init_metrics()
             self.initialized = True  # Attribute to indicate initialization
-            self.geolocator = Nominatim()
-            self.db = db
+        self.geolocator = Nominatim(user_agent=f"meshtastic-prometheus-exporter-{str(uuid.uuid4())}")
+        self.db = db
+
+    def get_db(self):
+        return self.db
 
     @staticmethod
     def _get_common_labels():
@@ -36,22 +40,24 @@ class _Metrics:
         self._init_route_discovery_metrics()
 
     def update_metrics_position(self, latitude, longitude, altitude, precision, client_details: ClientDetails):
-        point = geopy.point.Point(latitude, longitude, altitude)
-        location = self.geolocator.reverse(point, language='en')
+        # Could be used to calculate more complex data (Like distances etc..)
+        # point = geopy.point.Point(latitude, longitude, altitude) # Not used for now
 
-        country = location.raw.get('address', {}).get('country', 'Unknown')
-        city = location.raw.get('address', {}).get('city', 'Unknown')
-        state = location.raw.get('address', {}).get('state', 'Unknown')
+        if latitude != 0 and longitude != 0:
+            # location = RateLimiter(self.geolocator.reverse, min_delay_seconds=10, swallow_exceptions=False)((latitude, longitude), language='en', timeout=10)
+            # country = location.raw.get('address', {}).get('country', 'Unknown')
+            # city = location.raw.get('address', {}).get('city', 'Unknown')
+            # state = location.raw.get('address', {}).get('state', 'Unknown')
 
-        def db_operation(cur, conn):
-            cur.execute("""
-            UPDATE node_details
-            SET latitude = %s, longitude = %s, altitude = %s, precision = %s, country = %s, city = %s, state = %s
-            WHERE node_id = %s
-            """, (latitude, longitude, altitude, precision, country, city, state, client_details.node_id))
-            conn.commit()
+            def db_operation(cur, conn):
+                cur.execute("""
+                        UPDATE node_details
+                        SET latitude = %s, longitude = %s, altitude = %s, precision = %s
+                        WHERE node_id = %s
+                        """, (latitude, longitude, altitude, precision, client_details.node_id))
+                conn.commit()
 
-        self.db.execute_db_operation(db_operation)
+            self.db.execute_db_operation(db_operation)
 
     def _init_metrics_telemetry_power(self):
         self.ch1_voltage_gauge = Gauge(
