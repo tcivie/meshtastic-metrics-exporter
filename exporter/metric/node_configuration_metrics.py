@@ -187,11 +187,28 @@ class NodeConfigurationMetrics(metaclass=Singleton):
         self.db.execute_db_operation(db_operation)
 
     def process_mqtt_update(self, node_id: str, mqtt_encryption_enabled=None, mqtt_json_enabled=None,
-                            mqtt_configured_root_topic=None):
+                            mqtt_configured_root_topic=None, is_json_message=False):
         if not self.report:
             return
 
         def db_operation(cur, conn):
+            # Update the last MQTT message timestamp for every message
+            cur.execute("""
+            UPDATE node_configurations
+            SET mqtt_info_last_timestamp = NOW()
+            WHERE node_id = %s
+            """, (node_id,))
+
+            # If it's a JSON message, update the JSON message timestamp
+            if is_json_message:
+                cur.execute("""
+                UPDATE node_configurations
+                SET mqtt_json_message_timestamp = NOW(),
+                    mqtt_json_enabled = TRUE
+                WHERE node_id = %s
+                """, (node_id,))
+
+            # Perform the main update
             cur.execute("""
             INSERT INTO node_configurations (
                 node_id, 
@@ -203,9 +220,14 @@ class NodeConfigurationMetrics(metaclass=Singleton):
             ON CONFLICT(node_id)
             DO UPDATE SET
                 mqtt_encryption_enabled = COALESCE(EXCLUDED.mqtt_encryption_enabled, node_configurations.mqtt_encryption_enabled),
-                mqtt_json_enabled = COALESCE(EXCLUDED.mqtt_json_enabled, node_configurations.mqtt_json_enabled),
+                mqtt_json_enabled = CASE
+                    WHEN (node_configurations.mqtt_info_last_timestamp - node_configurations.mqtt_json_message_timestamp) > INTERVAL '1 hour'
+                    THEN FALSE
+                    ELSE COALESCE(EXCLUDED.mqtt_json_enabled, node_configurations.mqtt_json_enabled)
+                END,
                 mqtt_configured_root_topic = COALESCE(EXCLUDED.mqtt_configured_root_topic, node_configurations.mqtt_configured_root_topic),
                 mqtt_info_last_timestamp = NOW()
+            RETURNING mqtt_json_enabled
             """, (node_id, mqtt_encryption_enabled, mqtt_json_enabled, mqtt_configured_root_topic))
             conn.commit()
 
