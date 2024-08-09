@@ -30,7 +30,9 @@ def release_connection(conn):
 
 def handle_connect(client, userdata, flags, reason_code, properties):
     print(f"Connected with result code {reason_code}")
-    client.subscribe(os.getenv('MQTT_TOPIC', 'msh/israel/#'))
+    topics = os.getenv('MQTT_TOPIC', 'msh/israel/#').split(',')
+    topics_tuples = [(topic, 0) for topic in topics]
+    client.subscribe(topics_tuples)
 
 
 def update_node_status(node_number, status):
