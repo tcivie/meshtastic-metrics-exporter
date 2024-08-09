@@ -1,0 +1,357 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 17,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "description": "Graph that is built from Neighbor Info reports and shows the signal strenth for each line",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": -13
+              },
+              {
+                "color": "green",
+                "value": -7
+              }
+            ]
+          },
+          "unit": "dB"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 24,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "basemap": {
+          "config": {},
+          "name": "Layer 0",
+          "opacity": 1,
+          "tooltip": true,
+          "type": "xyz"
+        },
+        "controls": {
+          "mouseWheelZoom": true,
+          "showAttribution": true,
+          "showDebug": false,
+          "showMeasure": true,
+          "showScale": true,
+          "showZoom": true
+        },
+        "layers": [
+          {
+            "config": {
+              "arrow": 1,
+              "edgeStyle": {
+                "color": {
+                  "field": "mainstat",
+                  "fixed": "dark-green"
+                },
+                "opacity": 1,
+                "rotation": {
+                  "fixed": 0,
+                  "max": 360,
+                  "min": -360,
+                  "mode": "mod"
+                },
+                "size": {
+                  "field": "thickness",
+                  "fixed": 5,
+                  "max": 3,
+                  "min": 1
+                },
+                "symbol": {
+                  "fixed": "img/icons/marker/circle.svg",
+                  "mode": "fixed"
+                },
+                "symbolAlign": {
+                  "horizontal": "center",
+                  "vertical": "center"
+                },
+                "text": {
+                  "field": "mainstat",
+                  "fixed": "",
+                  "mode": "field"
+                },
+                "textConfig": {
+                  "fontSize": 10,
+                  "offsetX": 0,
+                  "offsetY": 0,
+                  "textAlign": "center",
+                  "textBaseline": "top"
+                }
+              },
+              "showLegend": false,
+              "style": {
+                "color": {
+                  "fixed": "dark-green"
+                },
+                "opacity": 1,
+                "rotation": {
+                  "fixed": 5,
+                  "max": 360,
+                  "min": -360,
+                  "mode": "mod"
+                },
+                "size": {
+                  "fixed": 5,
+                  "max": 15,
+                  "min": 2
+                },
+                "symbol": {
+                  "fixed": "img/icons/marker/circle.svg",
+                  "mode": "fixed"
+                },
+                "symbolAlign": {
+                  "horizontal": "center",
+                  "vertical": "center"
+                },
+                "text": {
+                  "field": "title",
+                  "fixed": "",
+                  "mode": "field"
+                },
+                "textConfig": {
+                  "fontSize": 12,
+                  "offsetX": 0,
+                  "offsetY": 0,
+                  "textAlign": "left",
+                  "textBaseline": "top"
+                }
+              }
+            },
+            "name": "Layer 1",
+            "tooltip": true,
+            "type": "network"
+          }
+        ],
+        "tooltip": {
+          "mode": "none"
+        },
+        "view": {
+          "allLayers": true,
+          "id": "coords",
+          "lat": 31.991767,
+          "lon": 34.703985,
+          "zoom": 7.65
+        }
+      },
+      "pluginVersion": "11.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT DISTINCT\n    cd.node_id AS \"id\",\n    cd.long_name AS \"title\",\n    cd.hardware_model AS \"detail__Hardware Detail\",\n    cd.role AS \"detail__Client Role\",\n    cd.mqtt_status AS \"detail__MQTT Status\",\n    cd.short_name AS \"subtitle\",\n    cd.longitude * 1e-7 AS \"longitude\",\n    cd.latitude * 1e-7 AS \"latitude\"\nFROM\n    node_details cd\nLEFT JOIN (\n    SELECT node_id FROM node_neighbors\n    UNION\n    SELECT neighbor_id FROM node_neighbors\n) nn ON cd.node_id = nn.node_id\nWHERE nn.node_id IS NOT NULL",
+          "refId": "nodes",
+          "sql": {
+            "columns": [
+              {
+                "alias": "\"id\"",
+                "parameters": [
+                  {
+                    "name": "node_id",
+                    "type": "functionParameter"
+                  }
+                ],
+                "type": "function"
+              },
+              {
+                "alias": "\"title\"",
+                "parameters": [
+                  {
+                    "name": "long_name",
+                    "type": "functionParameter"
+                  }
+                ],
+                "type": "function"
+              },
+              {
+                "alias": "\"detail__Hardware Detail\"",
+                "parameters": [
+                  {
+                    "name": "hardware_model",
+                    "type": "functionParameter"
+                  }
+                ],
+                "type": "function"
+              },
+              {
+                "alias": "\"detail__Client Role\"",
+                "parameters": [
+                  {
+                    "name": "role",
+                    "type": "functionParameter"
+                  }
+                ],
+                "type": "function"
+              },
+              {
+                "alias": "\"detail__MQTT Status\"",
+                "parameters": [
+                  {
+                    "name": "mqtt_status",
+                    "type": "functionParameter"
+                  }
+                ],
+                "type": "function"
+              },
+              {
+                "alias": "\"subtitle\"",
+                "parameters": [
+                  {
+                    "name": "short_name",
+                    "type": "functionParameter"
+                  }
+                ],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          },
+          "table": "node_details"
+        },
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "SELECT \n    CONCAT(neighbor_id, '_', node_id) AS id,\n    neighbor_id AS \"source\",\n    node_id AS \"target\",\n    snr AS \"mainstat\",\n    CASE\n        WHEN snr < -13 THEN '#E74C3C'  -- Red for SNR < -13\n        WHEN snr < -7 THEN '#F4D03F'   -- Yellow for -13 ≤ SNR < -7\n        ELSE '#2ECC71'                 -- Green for SNR ≥ -7\n    END AS \"color\",\n    GREATEST(0.1, LEAST(2, 1 + ((snr + 13) / 10))) AS \"thickness\"\nFROM \n    node_neighbors",
+          "refId": "edges",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [
+                  {
+                    "name": "id",
+                    "type": "functionParameter"
+                  }
+                ],
+                "type": "function"
+              },
+              {
+                "alias": "\"source\"",
+                "parameters": [
+                  {
+                    "name": "neighbor_id",
+                    "type": "functionParameter"
+                  }
+                ],
+                "type": "function"
+              },
+              {
+                "alias": "\"target\"",
+                "parameters": [
+                  {
+                    "name": "node_id",
+                    "type": "functionParameter"
+                  }
+                ],
+                "type": "function"
+              },
+              {
+                "alias": "\"mainstat\"",
+                "parameters": [
+                  {
+                    "name": "snr",
+                    "type": "functionParameter"
+                  }
+                ],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          },
+          "table": "node_neighbors"
+        }
+      ],
+      "title": "Node Graph (Map)",
+      "type": "geomap"
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": [],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Node Graph (Map)",
+  "uid": "cdt467x8uwbgga",
+  "version": 5,
+  "weekStart": ""
+}

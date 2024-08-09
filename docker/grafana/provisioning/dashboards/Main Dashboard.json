@@ -44,7 +44,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 1,
+  "id": 11,
   "links": [],
   "panels": [
     {
@@ -175,10 +175,6 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
           }
@@ -187,7 +183,7 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 5,
+        "w": 4,
         "x": 4,
         "y": 0
       },
@@ -229,6 +225,114 @@
         }
       ],
       "title": "Active nodes in the last 30 minutes",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "description": "How many nodes are Unknonw and how many are Known.\n\nThe unknown are ones that are either NULL in their long name or \"Unknown\" in their value",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "fieldMinMax": false,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "nodes"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Unnamed"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 0
+      },
+      "id": 24,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n    COUNT(CASE WHEN long_name IS NULL OR long_name = 'Unknown' AND node_id != '0' THEN 1 END) AS \"Unnamed\",\n    COUNT(CASE WHEN long_name IS NOT NULL AND long_name != 'Unknown' AND node_id != '0' THEN 1 END) AS \"Named\"\nFROM\n    node_details\n\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "name": "COUNT",
+                "parameters": [
+                  {
+                    "name": "short_name",
+                    "type": "functionParameter"
+                  }
+                ],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "name": "short_name",
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          },
+          "table": "node_details"
+        }
+      ],
+      "title": "Nodes naming status",
       "type": "stat"
     },
     {
@@ -279,8 +383,8 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 5,
-        "x": 9,
+        "w": 4,
+        "x": 12,
         "y": 0
       },
       "id": 17,
@@ -298,7 +402,7 @@
           "values": true
         },
         "showPercentChange": false,
-        "textMode": "auto",
+        "textMode": "value_and_name",
         "wideLayout": true
       },
       "pluginVersion": "11.1.0",
@@ -396,78 +500,6 @@
     },
     {
       "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
-      "description": "This metric shows the length that only 5% of messages exceed, representing the typical upper limit of message sizes in our Meshtastic network. It helps identify trends in message length without being skewed by rare, extremely long outliers. By focusing on the 95th percentile, we get a reliable measure of 'long' messages while filtering out unusual spikes.",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "bytes"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 5,
-        "x": 14,
-        "y": 0
-      },
-      "id": 6,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "11.1.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
-          },
-          "disableTextWrap": false,
-          "editorMode": "builder",
-          "expr": "histogram_quantile(0.95, sum by(le) (rate(text_message_app_size_in_bytes_bucket{source_id=~\"$Nodes\"}[$__rate_interval])))",
-          "fullMetaSearch": false,
-          "hide": false,
-          "includeNullMetadata": false,
-          "instant": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "A",
-          "useBackend": false
-        }
-      ],
-      "title": "Typical Maximum Message Length in Bytes",
-      "type": "stat"
-    },
-    {
-      "datasource": {
         "type": "datasource",
         "uid": "-- Mixed --"
       },
@@ -498,8 +530,8 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 5,
-        "x": 19,
+        "w": 4,
+        "x": 16,
         "y": 0
       },
       "id": 22,
@@ -542,12 +574,208 @@
       "type": "stat"
     },
     {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
+      "description": "Shows the total data sent on the mesh in bytes in the last hour. This includes all types of packets.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 0
+      },
+      "id": 6,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "P1809F7CD0C75ACF3"
+          },
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "expr": "sum(sum_over_time(text_message_app_size_in_bytes{source_id=~\"$Nodes\"}[1h]))",
+          "fullMetaSearch": false,
+          "hide": false,
+          "includeNullMetadata": false,
+          "instant": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A",
+          "useBackend": false
+        }
+      ],
+      "title": "Data sent on mesh in last hour",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
+      "description": "Displays the nodes that utilize most of the channel (On average with at least 1 update every hour)",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "dashed+area"
+            }
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 8.5
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 11,
+        "x": 0,
+        "y": 4
+      },
+      "id": 26,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "sortBy": "Last *",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "P1809F7CD0C75ACF3"
+          },
+          "disableTextWrap": false,
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "topk(3,\n  avg by (node_id, short_name, long_name) (\n    avg_over_time(telemetry_app_channel_utilization{node_id=~\"$Nodes\"}[$__range]) > 0\n    and\n    timestamp(telemetry_app_channel_utilization{node_id=~\"$Nodes\"}) > time() - 3600\n  )\n)",
+          "fullMetaSearch": false,
+          "includeNullMetadata": true,
+          "instant": false,
+          "legendFormat": "{{short_name}}:{{long_name}}",
+          "range": true,
+          "refId": "A",
+          "useBackend": false
+        }
+      ],
+      "title": "Top channel utilizers",
+      "type": "timeseries"
+    },
+    {
       "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 4
+        "y": 13
+      },
+      "id": 25,
+      "panels": [],
+      "title": "Highlighted Nodes",
+      "type": "row"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 14
       },
       "id": 16,
       "panels": [],
@@ -615,11 +843,11 @@
               },
               {
                 "color": "yellow",
-                "value": 10
+                "value": 8.5
               },
               {
                 "color": "red",
-                "value": 20
+                "value": 10
               }
             ]
           },
@@ -631,7 +859,7 @@
         "h": 9,
         "w": 11,
         "x": 0,
-        "y": 5
+        "y": 15
       },
       "id": 23,
       "options": {
@@ -651,23 +879,6 @@
         }
       },
       "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
-          },
-          "disableTextWrap": false,
-          "editorMode": "builder",
-          "expr": "max(telemetry_app_channel_utilization{node_id=~\"$Nodes\"})",
-          "fullMetaSearch": false,
-          "hide": true,
-          "includeNullMetadata": true,
-          "instant": false,
-          "legendFormat": "Chanel utilization (Max)",
-          "range": true,
-          "refId": "Max Chanel Utilization recorded",
-          "useBackend": false
-        },
         {
           "datasource": {
             "type": "prometheus",
@@ -706,7 +917,7 @@
             "axisColorMode": "text",
             "axisLabel": "",
             "axisPlacement": "auto",
-            "axisSoftMax": 6.5,
+            "axisSoftMax": 10,
             "barAlignment": 0,
             "drawStyle": "points",
             "fillOpacity": 0,
@@ -760,7 +971,7 @@
         "h": 9,
         "w": 13,
         "x": 11,
-        "y": 5
+        "y": 15
       },
       "id": 3,
       "options": {
@@ -813,7 +1024,7 @@
         "h": 32,
         "w": 11,
         "x": 0,
-        "y": 14
+        "y": 24
       },
       "id": 20,
       "options": {
@@ -1009,7 +1220,7 @@
         "h": 10,
         "w": 5,
         "x": 11,
-        "y": 14
+        "y": 24
       },
       "id": 5,
       "options": {
@@ -1075,16 +1286,23 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "#EAB839",
                 "value": 4
               },
               {
+                "color": "semi-dark-orange",
+                "value": 5
+              },
+              {
                 "color": "red",
                 "value": 6
+              },
+              {
+                "color": "dark-red",
+                "value": 7
               }
             ]
           },
@@ -1096,7 +1314,7 @@
         "h": 10,
         "w": 8,
         "x": 16,
-        "y": 14
+        "y": 24
       },
       "id": 9,
       "options": {
@@ -1138,7 +1356,7 @@
     },
     {
       "datasource": {
-        "type": "postgres",
+        "type": "grafana-postgresql-datasource",
         "uid": "PA942B37CCFAF5A81"
       },
       "description": "Information stored on the Redis DB which includes \"hard to get\" information - that is needed to be gathered over time.",
@@ -1232,7 +1450,7 @@
             "properties": [
               {
                 "id": "unit",
-                "value": "dateTimeAsLocal"
+                "value": "dateTimeFromNow"
               }
             ]
           },
@@ -1247,6 +1465,30 @@
                 "value": 126
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Last Updated At"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeFromNow"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Node ID Hex"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "hex"
+              }
+            ]
           }
         ]
       },
@@ -1254,7 +1496,7 @@
         "h": 22,
         "w": 13,
         "x": 11,
-        "y": 24
+        "y": 34
       },
       "id": 14,
       "options": {
@@ -1268,11 +1510,12 @@
           ],
           "show": true
         },
+        "frameIndex": 0,
         "showHeader": true,
         "sortBy": [
           {
-            "desc": true,
-            "displayName": "MQTT Status"
+            "desc": false,
+            "displayName": "Long name"
           }
         ]
       },
@@ -1286,7 +1529,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT * FROM node_details WHERE node_id <> '0'",
+          "rawSql": "SELECT * FROM node_details WHERE node_id <> '0' ",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1350,11 +1593,43 @@
           }
         },
         {
+          "id": "calculateField",
+          "options": {
+            "alias": "Node ID Hex",
+            "mode": "reduceRow",
+            "reduce": {
+              "include": [
+                "node_id"
+              ],
+              "reducer": "lastNotNull"
+            }
+          }
+        },
+        {
           "id": "organize",
           "options": {
-            "excludeByName": {},
+            "excludeByName": {
+              "altitude": true,
+              "latitude": true,
+              "longitude": true,
+              "precision": true
+            },
             "includeByName": {},
-            "indexByName": {},
+            "indexByName": {
+              "Node ID Hex": 1,
+              "altitude": 9,
+              "created_at": 11,
+              "hardware_model": 4,
+              "latitude": 8,
+              "long_name": 3,
+              "longitude": 7,
+              "mqtt_status": 6,
+              "node_id": 0,
+              "precision": 10,
+              "role": 5,
+              "short_name": 2,
+              "updated_at": 12
+            },
             "renameByName": {
               "created_at": "Record Created At",
               "hardware_model": "Hardware Model",
@@ -1362,7 +1637,8 @@
               "mqtt_status": "MQTT Status",
               "node_id": "Node ID",
               "role": "Client Role",
-              "short_name": "Short Name"
+              "short_name": "Short Name",
+              "updated_at": "Last Updated At"
             }
           }
         }
@@ -1419,13 +1695,38 @@
           },
           "unit": "string"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "created_at"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeFromNow"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "updated_at"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeFromNow"
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 25,
         "w": 24,
         "x": 0,
-        "y": 46
+        "y": 56
       },
       "id": 8,
       "options": {
@@ -1453,7 +1754,7 @@
                   "field": "mqtt_status",
                   "fixed": "dark-green"
                 },
-                "opacity": 0.2,
+                "opacity": 1,
                 "rotation": {
                   "fixed": 0,
                   "max": 360,
@@ -1461,12 +1762,12 @@
                   "mode": "mod"
                 },
                 "size": {
-                  "fixed": 10,
+                  "fixed": 3,
                   "max": 5,
                   "min": 1
                 },
                 "symbol": {
-                  "fixed": "img/icons/marker/triangle.svg",
+                  "fixed": "img/icons/marker/circle.svg",
                   "mode": "fixed"
                 },
                 "symbolAlign": {
@@ -1474,7 +1775,6 @@
                   "vertical": "top"
                 },
                 "text": {
-                  "field": "Short Name",
                   "fixed": "",
                   "mode": "field"
                 },
@@ -1593,11 +1893,15 @@
             "renameByName": {
               "Time 1": "Log Time",
               "__name__ 1": "",
+              "hardware_model": "Hardware Model",
               "hardware_model 1": "Hardware Model",
+              "long_name": "Long Name",
               "long_name 1": "Long Name",
               "mqtt_status": "MQTT_STATUS",
               "node_id": "Node ID",
+              "role": "Client Role",
               "role 1": "Client Role",
+              "short_name": "Short Name",
               "short_name 1": "Short Name"
             }
           }
@@ -1673,13 +1977,13 @@
     ]
   },
   "time": {
-    "from": "now-1h",
+    "from": "now-12h",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "browser",
   "title": "Main Dashboard",
   "uid": "edqkge9mf7v28g",
-  "version": 5,
+  "version": 66,
   "weekStart": "sunday"
 }

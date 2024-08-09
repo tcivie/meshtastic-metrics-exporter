@@ -1,0 +1,424 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 13,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {
+        "type": "datasource",
+        "uid": "-- Mixed --"
+      },
+      "description": "Information about the clients we have in the network and their relative packets sent",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "type": "auto",
+              "wrapText": true
+            },
+            "filterable": true,
+            "inspect": true,
+            "minWidth": 180
+          },
+          "fieldMinMax": true,
+          "mappings": [
+            {
+              "options": {
+                "none": {
+                  "color": "text",
+                  "index": 2,
+                  "text": "⚪️ Unknown"
+                },
+                "offline": {
+                  "color": "red",
+                  "index": 1,
+                  "text": "🛑 offline"
+                },
+                "online": {
+                  "color": "green",
+                  "index": 0,
+                  "text": "🟢 online"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "percentage",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 70
+              },
+              {
+                "color": "red",
+                "value": 90
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "MAP_REPORT_APP"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "drawStyle": "line",
+                  "hideValue": false,
+                  "type": "sparkline"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "packets"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "NEIGHBORINFO_APP"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "hideValue": false,
+                  "type": "sparkline"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "packets"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "NODEINFO_APP"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "drawStyle": "line",
+                  "hideValue": false,
+                  "lineStyle": {
+                    "dash": [
+                      10,
+                      10
+                    ],
+                    "fill": "solid"
+                  },
+                  "type": "sparkline"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "packets"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "POSITION_APP"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "hideValue": false,
+                  "type": "sparkline"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "packets"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "RANGE_TEST_APP"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "hideValue": false,
+                  "type": "sparkline"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "packets"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ROUTING_APP"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "hideValue": false,
+                  "type": "sparkline"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "packets"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "TELEMETRY_APP"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "hideValue": false,
+                  "type": "sparkline"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "packets"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "TEXT_MESSAGE_APP"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "hideValue": false,
+                  "type": "sparkline"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "packets"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "TRACEROUTE_APP"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "hideValue": false,
+                  "type": "sparkline"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "packets"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "node_id"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "hex"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 18,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 3,
+      "options": {
+        "cellHeight": "md",
+        "footer": {
+          "countRows": true,
+          "enablePagination": true,
+          "fields": [],
+          "reducer": [
+            "count"
+          ],
+          "show": true
+        },
+        "frameIndex": 1,
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "TELEMETRY_APP"
+          }
+        ]
+      },
+      "pluginVersion": "11.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "SELECT * FROM node_details",
+          "refId": "Client Details",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [
+                  {
+                    "name": "*",
+                    "type": "functionParameter"
+                  }
+                ],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          },
+          "table": "client_details"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "P1809F7CD0C75ACF3"
+          },
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "expr": "sum by(portnum, source_id) (mesh_packet_destination_types_total)",
+          "fullMetaSearch": false,
+          "hide": false,
+          "includeNullMetadata": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "Packet Types",
+          "useBackend": false
+        }
+      ],
+      "title": "General Information",
+      "transformations": [
+        {
+          "filter": {
+            "id": "byRefId",
+            "options": "Packet Types"
+          },
+          "id": "timeSeriesTable",
+          "options": {
+            "Packet Types": {
+              "stat": "lastNotNull",
+              "timeField": "Time"
+            }
+          }
+        },
+        {
+          "filter": {
+            "id": "byRefId",
+            "options": "Packet Types"
+          },
+          "id": "groupingToMatrix",
+          "options": {
+            "columnField": "portnum",
+            "emptyValue": "null",
+            "rowField": "source_id",
+            "valueField": "Trend #Packet Types"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "(source_id\\\\portnum)",
+            "renamePattern": "node_id"
+          }
+        },
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "node_id",
+            "mode": "outer"
+          }
+        }
+      ],
+      "transparent": true,
+      "type": "table"
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": [],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Investigation Board",
+  "uid": "adrqynul4j3eoa",
+  "version": 17,
+  "weekStart": ""
+}

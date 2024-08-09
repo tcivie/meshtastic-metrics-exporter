@@ -2,7 +2,7 @@
 <project version="4">
   <component name="SqlDialectMappings">
     <file url="file://$PROJECT_DIR$/docker/postgres/init.sql" dialect="PostgreSQL" />
-    <file url="file://$PROJECT_DIR$/exporter/processor_base.py" dialect="PostgreSQL" />
+    <file url="file://$PROJECT_DIR$/exporter/processor/processor_base.py" dialect="PostgreSQL" />
     <file url="PROJECT" dialect="PostgreSQL" />
   </component>
 </project>

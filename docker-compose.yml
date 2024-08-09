@@ -35,6 +35,9 @@ services:
       context: .
       dockerfile: ./docker/exporter/Dockerfile.exporter
     restart: unless-stopped
+    depends_on:
+      - prometheus
+      - postgres
     extra_hosts:
       - "host.docker.internal:host-gateway"
     env_file:
