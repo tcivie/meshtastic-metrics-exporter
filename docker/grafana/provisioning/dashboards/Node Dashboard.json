@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 2,
+  "id": 10,
   "links": [],
   "panels": [
     {
@@ -26,7 +26,7 @@
         "type": "datasource",
         "uid": "-- Mixed --"
       },
-      "description": "Total packets sent in specified time range",
+      "description": "Total packets sent in the specified time range",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -101,7 +101,7 @@
         "type": "datasource",
         "uid": "-- Mixed --"
       },
-      "description": "Displays types of packets in the selected time range.\n\nFor more details see:\nhttps://buf.build/meshtastic/protobufs/docs/main:meshtastic#meshtastic.PortNum",
+      "description": "Displays types of packets sent in the selected time range.\n\nFor more details see:\nhttps://buf.build/meshtastic/protobufs/docs/main:meshtastic#meshtastic.PortNum",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -143,7 +143,7 @@
           "values": false
         },
         "showPercentChange": false,
-        "textMode": "auto",
+        "textMode": "value_and_name",
         "wideLayout": true
       },
       "pluginVersion": "11.1.0",
@@ -164,7 +164,7 @@
           "useBackend": false
         }
       ],
-      "title": "Packet types for selected time",
+      "title": "Packet types sent for selected time",
       "type": "stat"
     },
     {
@@ -172,7 +172,7 @@
         "type": "prometheus",
         "uid": "P1809F7CD0C75ACF3"
       },
-      "description": "The last time we got message from this node",
+      "description": "The last time a packet was observed being sent from this node",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -225,7 +225,221 @@
             "uid": "P1809F7CD0C75ACF3"
           },
           "editorMode": "code",
-          "expr": "timestamp((\n  count(mesh_packet_ids_created{source_id=\"$nodeID\"}) by (source_id)\n  -\n  count(mesh_packet_ids_created{source_id=\"$nodeID\"} offset 1m) by (source_id)\n) > 0)",
+          "expr": "timestamp((\n  count(mesh_packet_total{source_id=\"$nodeID\"}) by (source_id)\n  -\n  count(mesh_packet_total{source_id=\"$nodeID\"} offset 1m) by (source_id)\n) > 0)",
+          "instant": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Last packet sent",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "datasource",
+        "uid": "-- Mixed --"
+      },
+      "description": "Total packets observed with this node as their destination in the specified time range",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "fieldMinMax": false,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "Packets"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 5,
+        "x": 0,
+        "y": 4
+      },
+      "id": 14,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "P1809F7CD0C75ACF3"
+          },
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "expr": "sum(sum by(portnum) (mesh_packet_source_types_total{destination_id=~\"$nodeID\"}))",
+          "fullMetaSearch": false,
+          "includeNullMetadata": true,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A",
+          "useBackend": false
+        }
+      ],
+      "title": "Total packets received",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "datasource",
+        "uid": "-- Mixed --"
+      },
+      "description": "Displays types of packets received in the selected time range.\n\nFor more details see:\nhttps://buf.build/meshtastic/protobufs/docs/main:meshtastic#meshtastic.PortNum",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "fieldMinMax": false,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "Packets"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 13,
+        "x": 5,
+        "y": 4
+      },
+      "id": 15,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "P1809F7CD0C75ACF3"
+          },
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "expr": "sum by(portnum) (mesh_packet_source_types_total{destination_id=\"$nodeID\"})",
+          "fullMetaSearch": false,
+          "includeNullMetadata": true,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A",
+          "useBackend": false
+        }
+      ],
+      "title": "Packet types received for selected time",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
+      "description": "The last time a packet was observed with this node as its destination",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "fieldMinMax": false,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "dateTimeFromNow"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 4
+      },
+      "id": 16,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^Time$/",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "P1809F7CD0C75ACF3"
+          },
+          "editorMode": "code",
+          "expr": "timestamp((\n  count(mesh_packet_total{destination_id=\"$nodeID\"}) by (destination_id)\n  -\n  count(mesh_packet_total{destination_id=\"$nodeID\"} offset 1m) by (destination_id)\n) > 0)",
           "instant": false,
           "legendFormat": "__auto",
           "range": true,
@@ -237,7 +451,7 @@
     },
     {
       "datasource": {
-        "type": "postgres",
+        "type": "grafana-postgresql-datasource",
         "uid": "PA942B37CCFAF5A81"
       },
       "fieldConfig": {
@@ -284,13 +498,50 @@
             ]
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Node Created At"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeFromNow"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Node Updated At"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeFromNow"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Node ID"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "hex"
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 4,
         "w": 24,
         "x": 0,
-        "y": 4
+        "y": 8
       },
       "id": 1,
       "options": {
@@ -372,16 +623,23 @@
         {
           "id": "organize",
           "options": {
-            "excludeByName": {},
+            "excludeByName": {
+              "altitude": true,
+              "latitude": true,
+              "longitude": true,
+              "precision": true
+            },
             "includeByName": {},
             "indexByName": {},
             "renameByName": {
+              "created_at": "Node Created At",
               "hardware_model": "Hardware Model",
               "long_name": "Long Name",
               "mqtt_status": "MQTT Status",
               "node_id": "Node ID",
               "role": "Client Role",
-              "short_name": "Short Name"
+              "short_name": "Short Name",
+              "updated_at": "Node Updated At"
             }
           }
         }
@@ -399,7 +657,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 8
+        "y": 12
       },
       "id": 9,
       "options": {
@@ -605,7 +863,7 @@
         "h": 5,
         "w": 16,
         "x": 8,
-        "y": 8
+        "y": 12
       },
       "id": 5,
       "options": {
@@ -688,8 +946,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -701,7 +958,7 @@
         "h": 5,
         "w": 16,
         "x": 8,
-        "y": 13
+        "y": 17
       },
       "id": 6,
       "options": {
@@ -780,8 +1037,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           }
@@ -792,7 +1048,7 @@
         "h": 7,
         "w": 8,
         "x": 0,
-        "y": 16
+        "y": 20
       },
       "id": 13,
       "options": {
@@ -971,8 +1227,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -984,7 +1239,7 @@
         "h": 5,
         "w": 16,
         "x": 8,
-        "y": 18
+        "y": 22
       },
       "id": 7,
       "options": {
@@ -1110,7 +1365,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 23
+        "y": 27
       },
       "id": 2,
       "options": {
@@ -1208,7 +1463,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 23
+        "y": 27
       },
       "id": 3,
       "options": {
@@ -1246,6 +1501,7 @@
       "type": "timeseries"
     }
   ],
+  "refresh": "1m",
   "schemaVersion": 39,
   "tags": [],
   "templating": {
@@ -1253,8 +1509,8 @@
       {
         "current": {
           "selected": false,
-          "text": "🤫 (3663649648)",
-          "value": "3663649648"
+          "text": "🐦‍🔥:34GL3 (3944975137)",
+          "value": "3944975137"
         },
         "datasource": {
           "type": "postgres",
@@ -1276,10 +1532,9 @@
       },
       {
         "current": {
-          "isNone": true,
           "selected": false,
-          "text": "None",
-          "value": ""
+          "text": "3944975137",
+          "value": "3944975137"
         },
         "datasource": {
           "type": "postgres",
@@ -1310,6 +1565,6 @@
   "timezone": "browser",
   "title": "Node Dashboard",
   "uid": "edqo1uh0eglq8g",
-  "version": 4,
+  "version": 30,
   "weekStart": ""
 }
