@@ -42,7 +42,7 @@ def update_node_status(node_number, status):
             cur.execute("INSERT INTO node_details (node_id, mqtt_status, short_name, long_name) VALUES (%s, %s, %s, %s)"
                         "ON CONFLICT(node_id)"
                         "DO UPDATE SET mqtt_status = %s",
-                        (node_number, status, status, 'Unknown (MQTT)', 'Unknown (MQTT)'))
+                        (node_number, status, 'Unknown (MQTT)', 'Unknown (MQTT)', status))
             conn.commit()
 
 
