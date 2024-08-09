@@ -153,6 +153,7 @@ class MessageProcessor:
             gateway_node_id = str(int(json_packet['sender'][1:], 16))
             NodeConfigurationMetrics().process_mqtt_update(
                 node_id=gateway_node_id,
+                mqtt_json_enabled=True,
                 mqtt_encryption_enabled=json_packet.get('encrypted', False),
                 mqtt_configured_root_topic=topic
             )
@@ -167,6 +168,7 @@ class MessageProcessor:
                 gateway_node_id = str(int(service_envelope.gateway_id[1:], 16))
                 NodeConfigurationMetrics().process_mqtt_update(
                     node_id=gateway_node_id,
+                    mqtt_json_enabled=False,
                     mqtt_encryption_enabled=is_encrypted,
                     mqtt_configured_root_topic=topic
                 )

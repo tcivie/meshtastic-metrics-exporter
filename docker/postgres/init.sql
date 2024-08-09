@@ -86,6 +86,8 @@ CREATE TABLE IF NOT EXISTS node_configurations
     -- Configuration (MQTT)
     mqtt_encryption_enabled           BOOLEAN   DEFAULT FALSE,
     mqtt_json_enabled                 BOOLEAN   DEFAULT FALSE,
+    mqtt_json_message_timestamp TIMESTAMP DEFAULT NOW(),
+
     mqtt_configured_root_topic        TEXT      DEFAULT '',
     mqtt_info_last_timestamp          TIMESTAMP DEFAULT NOW(),
 
