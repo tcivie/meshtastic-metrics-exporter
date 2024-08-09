@@ -1,9 +1,13 @@
 import base64
+import json
 import os
 import sys
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from meshtastic.protobuf.mqtt_pb2 import ServiceEnvelope
+
+from exporter.metric.node_configuration_metrics import NodeConfigurationMetrics
 
 try:
     from meshtastic.mesh_pb2 import MeshPacket, Data, HardwareModel
@@ -16,7 +20,7 @@ from prometheus_client import CollectorRegistry, Counter, Gauge
 from psycopg_pool import ConnectionPool
 
 from exporter.client_details import ClientDetails
-from exporter.processors import ProcessorRegistry
+from exporter.processor.processors import ProcessorRegistry
 
 
 class MessageProcessor:
@@ -140,6 +144,32 @@ class MessageProcessor:
             common_labels,
             registry=self.registry
         )
+
+    @staticmethod
+    def process_json_mqtt(message):
+        topic = message.topic
+        json_packet = json.loads(message.payload)
+        if json_packet['sender'][0] == '!':
+            gateway_node_id = str(int(json_packet['sender'][1:], 16))
+            NodeConfigurationMetrics().process_mqtt_update(
+                node_id=gateway_node_id,
+                mqtt_encryption_enabled=json_packet.get('encrypted', False),
+                mqtt_configured_root_topic=topic
+            )
+
+    @staticmethod
+    def process_mqtt(topic: str, service_envelope: ServiceEnvelope, mesh_packet: MeshPacket):
+        is_encrypted = False
+        if getattr(mesh_packet, 'encrypted'):
+            is_encrypted = True
+        if getattr(service_envelope, 'gateway_id'):
+            if service_envelope.gateway_id[0] == '!':
+                gateway_node_id = str(int(service_envelope.gateway_id[1:], 16))
+                NodeConfigurationMetrics().process_mqtt_update(
+                    node_id=gateway_node_id,
+                    mqtt_encryption_enabled=is_encrypted,
+                    mqtt_configured_root_topic=topic
+                )
 
     def process(self, mesh_packet: MeshPacket):
         try:

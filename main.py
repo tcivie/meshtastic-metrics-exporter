@@ -6,6 +6,7 @@ import paho.mqtt.client as mqtt
 from dotenv import load_dotenv
 
 from constants import callback_api_version_map, protocol_map
+from exporter.metric.node_configuration_metrics import NodeConfigurationMetrics
 
 try:
     from meshtastic.mesh_pb2 import MeshPacket
@@ -38,9 +39,10 @@ def handle_connect(client, userdata, flags, reason_code, properties):
 def update_node_status(node_number, status):
     with connection_pool.connection() as conn:
         with conn.cursor() as cur:
-            cur.execute("INSERT INTO node_details (node_id, mqtt_status) VALUES (%s, %s)"
+            cur.execute("INSERT INTO node_details (node_id, mqtt_status, short_name, long_name) VALUES (%s, %s, %s, %s)"
                         "ON CONFLICT(node_id)"
-                        "DO UPDATE SET mqtt_status = %s", (node_number, status, status))
+                        "DO UPDATE SET mqtt_status = %s",
+                        (node_number, status, status, 'Unknown (MQTT)', 'Unknown (MQTT)'))
             conn.commit()
 
 
@@ -48,6 +50,7 @@ def handle_message(client, userdata, message):
     current_timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     print(f"Received message on topic '{message.topic}' at {current_timestamp}")
     if '/json/' in message.topic:
+        processor.process_json_mqtt(message)
         # Ignore JSON messages as there are also protobuf messages sent on other topic
         # Source: https://github.com/meshtastic/firmware/blob/master/src/mqtt/MQTT.cpp#L448
         return
@@ -78,7 +81,7 @@ def handle_message(client, userdata, message):
                 cur.execute("INSERT INTO messages (id, received_at) VALUES (%s, NOW()) ON CONFLICT (id) DO NOTHING",
                             (str(packet.id),))
                 conn.commit()
-
+        processor.process_mqtt(message.topic, envelope, packet)
         processor.process(packet)
     except Exception as e:
         logging.error(f"Failed to handle message: {e}")
@@ -89,14 +92,15 @@ if __name__ == "__main__":
     load_dotenv()
 
     # We have to load_dotenv before we can import MessageProcessor to allow filtering of message types
-    from exporter.processor_base import MessageProcessor
+    from exporter.processor.processor_base import MessageProcessor
 
     # Setup a connection pool
     connection_pool = ConnectionPool(
         os.getenv('DATABASE_URL'),
-        min_size=1,
-        max_size=10
+        max_size=100
     )
+    # Configure node configuration metrics
+    node_conf_metrics = NodeConfigurationMetrics(connection_pool)
 
     # Configure Prometheus exporter
     registry = CollectorRegistry()

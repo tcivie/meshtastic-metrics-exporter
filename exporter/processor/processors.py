@@ -6,6 +6,7 @@ import psycopg
 import unishox2
 
 from exporter.db_handler import DBHandler
+from exporter.metric.node_configuration_metrics import NodeConfigurationMetrics
 
 try:
     from meshtastic.admin_pb2 import AdminMessage
@@ -32,13 +33,13 @@ from prometheus_client import CollectorRegistry
 from psycopg_pool import ConnectionPool
 
 from exporter.client_details import ClientDetails
-from exporter.registry import _Metrics
+from exporter.metric.node_metrics import Metrics
 
 
 class Processor(ABC):
     def __init__(self, registry: CollectorRegistry, db_pool: ConnectionPool):
         self.db_pool = db_pool
-        self.metrics = _Metrics(registry, DBHandler(db_pool))
+        self.metrics = Metrics(registry, DBHandler(db_pool))
 
     @abstractmethod
     def process(self, payload: bytes, client_details: ClientDetails):
@@ -257,6 +258,7 @@ class IpTunnelAppProcessor(Processor):
 class PaxCounterAppProcessor(Processor):
     def process(self, payload: bytes, client_details: ClientDetails):
         logger.debug("Received PAXCOUNTER_APP packet")
+        NodeConfigurationMetrics().process_pax_counter_update(client_details.node_id)
         paxcounter = Paxcount()
         try:
             paxcounter.ParseFromString(payload)
@@ -288,6 +290,7 @@ class StoreForwardAppProcessor(Processor):
 class RangeTestAppProcessor(Processor):
     def process(self, payload: bytes, client_details: ClientDetails):
         logger.debug("Received RANGE_TEST_APP packet")
+        NodeConfigurationMetrics().process_range_test_update(client_details.node_id)
         pass  # NOTE: This portnum traffic is not sent to the public MQTT starting at firmware version 2.2.9
 
 
@@ -306,6 +309,7 @@ class TelemetryAppProcessor(Processor):
             return
 
         if telemetry.HasField('device_metrics'):
+            NodeConfigurationMetrics().process_device_update(client_details.node_id)
             device_metrics: DeviceMetrics = telemetry.device_metrics
             self.metrics.battery_level_gauge.labels(
                 **client_details.to_dict()
@@ -328,6 +332,7 @@ class TelemetryAppProcessor(Processor):
             ).inc(getattr(device_metrics, 'uptime_seconds', 0))
 
         if telemetry.HasField('environment_metrics'):
+            NodeConfigurationMetrics().process_environment_update(client_details.node_id)
             environment_metrics: EnvironmentMetrics = telemetry.environment_metrics
             self.metrics.temperature_gauge.labels(
                 **client_details.to_dict()
@@ -382,6 +387,7 @@ class TelemetryAppProcessor(Processor):
             ).set(getattr(environment_metrics, 'weight', 0))
 
         if telemetry.HasField('air_quality_metrics'):
+            NodeConfigurationMetrics().process_air_quality_update(client_details.node_id)
             air_quality_metrics: AirQualityMetrics = telemetry.air_quality_metrics
             self.metrics.pm10_standard_gauge.labels(
                 **client_details.to_dict()
@@ -432,6 +438,7 @@ class TelemetryAppProcessor(Processor):
             ).set(getattr(air_quality_metrics, 'particles_100um', 0))
 
         if telemetry.HasField('power_metrics'):
+            NodeConfigurationMetrics().process_power_update(client_details.node_id)
             power_metrics: PowerMetrics = telemetry.power_metrics
             self.metrics.ch1_voltage_gauge.labels(
                 **client_details.to_dict()
@@ -493,6 +500,7 @@ class TraceRouteAppProcessor(Processor):
 class NeighborInfoAppProcessor(Processor):
     def process(self, payload: bytes, client_details: ClientDetails):
         logger.debug("Received NEIGHBORINFO_APP packet")
+        NodeConfigurationMetrics().process_neighbor_info_update(client_details.node_id)
         neighbor_info = NeighborInfo()
         try:
             neighbor_info.ParseFromString(payload)
@@ -547,6 +555,7 @@ class AtakPluginProcessor(Processor):
 class MapReportAppProcessor(Processor):
     def process(self, payload: bytes, client_details: ClientDetails):
         logger.debug("Received MAP_REPORT_APP packet")
+        NodeConfigurationMetrics().map_broadcast_update(client_details.node_id)
         map_report = MapReport()
         try:
             map_report.ParseFromString(payload)

@@ -4,12 +4,12 @@ from exporter.client_details import ClientDetails
 from exporter.db_handler import DBHandler
 
 
-class _Metrics:
+class Metrics:
     _instance = None
 
     def __new__(cls, *args, **kwargs):
         if not cls._instance:
-            cls._instance = super(_Metrics, cls).__new__(cls)
+            cls._instance = super(Metrics, cls).__new__(cls)
         return cls._instance
 
     def __init__(self, registry: CollectorRegistry, db: DBHandler):
