@@ -51,12 +51,6 @@ CREATE TABLE IF NOT EXISTS node_neighbors
 
 CREATE UNIQUE INDEX idx_unique_node_neighbor ON node_neighbors (node_id, neighbor_id);
 
-CREATE OR REPLACE TRIGGER node_details_updated_at
-    BEFORE UPDATE
-    ON node_details
-    FOR EACH ROW
-EXECUTE PROCEDURE moddatetime(updated_at);
-
 CREATE TABLE IF NOT EXISTS node_configurations
 (
     node_id                           VARCHAR PRIMARY KEY,
