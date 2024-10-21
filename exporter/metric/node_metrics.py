@@ -1,3 +1,4 @@
+from datetime import datetime
 from prometheus_client import CollectorRegistry, Counter, Gauge
 
 from exporter.client_details import ClientDetails
@@ -48,9 +49,9 @@ class Metrics:
             def db_operation(cur, conn):
                 cur.execute("""
                         UPDATE node_details
-                        SET latitude = %s, longitude = %s, altitude = %s, precision = %s
+                        SET latitude = %s, longitude = %s, altitude = %s, precision = %s, updated_at = %s
                         WHERE node_id = %s
-                        """, (latitude, longitude, altitude, precision, client_details.node_id))
+                        """, (latitude, longitude, altitude, precision, datetime.now().isoformat(), client_details.node_id))
                 conn.commit()
 
             self.db.execute_db_operation(db_operation)

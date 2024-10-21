@@ -1,5 +1,6 @@
 import os
 from abc import ABC, abstractmethod
+from datetime import datetime
 from venv import logger
 
 import psycopg
@@ -151,12 +152,13 @@ class NodeInfoAppProcessor(Processor):
                     update_values.append(ClientDetails.get_role_name_from_role(user.role))
 
                 if update_fields:
+                    update_fields.append("updated_at = %s")
                     update_query = f"""
                         UPDATE node_details
                         SET {", ".join(update_fields)}
                         WHERE node_id = %s
                     """
-                    cur.execute(update_query, update_values + [client_details.node_id])
+                    cur.execute(update_query, update_values + [datetime.now().isoformat(), client_details.node_id])
             else:
                 # If record doesn't exist, insert a new one
                 cur.execute("""
