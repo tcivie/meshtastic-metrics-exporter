@@ -100,7 +100,7 @@ The project comes with 2 dashboards.
 
 #### Main Dashboard
 
-<img width="1514" alt="SCR-20240707-qgnn" src="https://github.com/tcivie/meshtastic-metrics-exporter/assets/87943721/9679c140-c5f7-4ea5-bfc6-0173b52fb28c">
+<img width="1470" alt="image" src="https://github.com/user-attachments/assets/09fe72e5-23eb-4516-9f34-19e2cc38b7dc">
 
 > The dashboard has some basic data about the mesh network and its data is temporarily updated
 > (With new data coming in it would fill out the missing pieces automatically)
@@ -111,7 +111,8 @@ to match your Grafana server's address.
 
 #### User Panel
 
-<img width="1470" alt="SCR-20240707-qhth" src="https://github.com/tcivie/meshtastic-metrics-exporter/assets/87943721/58f15190-127d-4481-b896-1c3e2121dea5">
+![image](https://github.com/user-attachments/assets/d344b7dd-dadc-4cbe-84cc-44333ea6e0c4)
+
 
 > This panel can be reached from the "Node ID" link on the main dashboard (The table in the center)
 > or you can go to it from the dashboards tab in Grafana and select the node you want to spectate.
