@@ -75,7 +75,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "11.1.0",
+      "pluginVersion": "11.2.2+security-01",
       "targets": [
         {
           "datasource": {
@@ -124,7 +124,7 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 13,
+        "w": 14,
         "x": 5,
         "y": 0
       },
@@ -146,7 +146,7 @@
         "textMode": "value_and_name",
         "wideLayout": true
       },
-      "pluginVersion": "11.1.0",
+      "pluginVersion": "11.2.2+security-01",
       "targets": [
         {
           "datasource": {
@@ -195,8 +195,8 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 6,
-        "x": 18,
+        "w": 5,
+        "x": 19,
         "y": 0
       },
       "id": 12,
@@ -217,7 +217,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "11.1.0",
+      "pluginVersion": "11.2.2+security-01",
       "targets": [
         {
           "datasource": {
@@ -289,7 +289,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "11.1.0",
+      "pluginVersion": "11.2.2+security-01",
       "targets": [
         {
           "datasource": {
@@ -338,7 +338,7 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 13,
+        "w": 14,
         "x": 5,
         "y": 4
       },
@@ -360,7 +360,7 @@
         "textMode": "value_and_name",
         "wideLayout": true
       },
-      "pluginVersion": "11.1.0",
+      "pluginVersion": "11.2.2+security-01",
       "targets": [
         {
           "datasource": {
@@ -409,8 +409,8 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 6,
-        "x": 18,
+        "w": 5,
+        "x": 19,
         "y": 4
       },
       "id": 16,
@@ -431,7 +431,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "11.1.0",
+      "pluginVersion": "11.2.2+security-01",
       "targets": [
         {
           "datasource": {
@@ -462,7 +462,8 @@
           "custom": {
             "align": "center",
             "cellOptions": {
-              "type": "auto"
+              "type": "auto",
+              "wrapText": false
             },
             "inspect": true
           },
@@ -556,7 +557,7 @@
         },
         "showHeader": true
       },
-      "pluginVersion": "11.1.0",
+      "pluginVersion": "11.2.2+security-01",
       "targets": [
         {
           "datasource": {
@@ -861,7 +862,7 @@
       },
       "gridPos": {
         "h": 5,
-        "w": 16,
+        "w": 9,
         "x": 8,
         "y": 12
       },
@@ -922,6 +923,169 @@
     },
     {
       "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto",
+              "wrapText": false
+            },
+            "filterable": true,
+            "inspect": false
+          },
+          "fieldMinMax": false,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 15,
+        "w": 7,
+        "x": 17,
+        "y": 12
+      },
+      "id": 17,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "11.2.2+security-01",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  node_id,\n  CASE\n    WHEN EXTRACT(EPOCH FROM environment_update_interval) > 1\n    THEN to_char(environment_update_interval, 'HH24:MI:SS')\n    ELSE NULL\n  END AS environment_update_interval,\n  to_char(environment_update_last_timestamp, 'YYYY-MM-DD HH24:MI:SS') AS environment_update_last_timestamp,\n  \n  CASE\n    WHEN EXTRACT(EPOCH FROM device_update_interval) > 1\n    THEN to_char(device_update_interval, 'HH24:MI:SS')\n    ELSE NULL\n  END AS device_update_interval,\n  to_char(device_update_last_timestamp, 'YYYY-MM-DD HH24:MI:SS') AS device_update_last_timestamp,\n  \n  CASE\n    WHEN EXTRACT(EPOCH FROM air_quality_update_interval) > 1\n    THEN to_char(air_quality_update_interval, 'HH24:MI:SS')\n    ELSE NULL\n  END AS air_quality_update_interval,\n  to_char(air_quality_update_last_timestamp, 'YYYY-MM-DD HH24:MI:SS') AS air_quality_update_last_timestamp,\n  \n  CASE\n    WHEN EXTRACT(EPOCH FROM power_update_interval) > 1\n    THEN to_char(power_update_interval, 'HH24:MI:SS')\n    ELSE NULL\n  END AS power_update_interval,\n  to_char(power_update_last_timestamp, 'YYYY-MM-DD HH24:MI:SS') AS power_update_last_timestamp,\n  \n  CASE\n    WHEN EXTRACT(EPOCH FROM range_test_interval) > 1\n    THEN to_char(range_test_interval, 'HH24:MI:SS')\n    ELSE NULL\n  END AS range_test_interval,\n  to_char(range_test_last_packet_timestamp, 'YYYY-MM-DD HH24:MI:SS') AS range_test_last_packet_timestamp,\n  \n  CASE\n    WHEN EXTRACT(EPOCH FROM pax_counter_interval) > 1\n    THEN to_char(pax_counter_interval, 'HH24:MI:SS')\n    ELSE NULL\n  END AS pax_counter_interval,\n  to_char(pax_counter_last_timestamp, 'YYYY-MM-DD HH24:MI:SS') AS pax_counter_last_timestamp,\n  \n  CASE\n    WHEN EXTRACT(EPOCH FROM neighbor_info_interval) > 1\n    THEN to_char(neighbor_info_interval, 'HH24:MI:SS')\n    ELSE NULL\n  END AS neighbor_info_interval,\n  to_char(neighbor_info_last_timestamp, 'YYYY-MM-DD HH24:MI:SS') AS neighbor_info_last_timestamp,\n  \n  CASE\n    WHEN EXTRACT(EPOCH FROM map_broadcast_interval) > 1\n    THEN to_char(map_broadcast_interval, 'HH24:MI:SS')\n    ELSE NULL\n  END AS map_broadcast_interval,\n  to_char(map_broadcast_last_timestamp, 'YYYY-MM-DD HH24:MI:SS') AS map_broadcast_last_timestamp,\n  \n  mqtt_encryption_enabled,\n  mqtt_json_enabled,\n  mqtt_configured_root_topic,\n  to_char(mqtt_info_last_timestamp, 'YYYY-MM-DD HH24:MI:SS') AS mqtt_info_last_timestamp,\n  \n  to_char(last_updated, 'YYYY-MM-DD HH24:MI:SS') AS last_updated\nFROM node_configurations\nWHERE\n  (EXTRACT(EPOCH FROM environment_update_interval) > 1 OR\n   EXTRACT(EPOCH FROM device_update_interval) > 1 OR\n   EXTRACT(EPOCH FROM air_quality_update_interval) > 1 OR\n   EXTRACT(EPOCH FROM power_update_interval) > 1 OR\n   EXTRACT(EPOCH FROM range_test_interval) > 1 OR\n   EXTRACT(EPOCH FROM pax_counter_interval) > 1 OR\n   EXTRACT(EPOCH FROM neighbor_info_interval) > 1 OR\n   EXTRACT(EPOCH FROM map_broadcast_interval) > 1)\n  AND node_id = '${nodeID}'\nLIMIT 50",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [
+                  {
+                    "name": "environment_update_interval",
+                    "type": "functionParameter"
+                  }
+                ],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50,
+            "whereJsonTree": {
+              "children1": [
+                {
+                  "id": "8abaab98-4567-489a-bcde-f19136d5e7d5",
+                  "properties": {
+                    "field": "node_id",
+                    "fieldSrc": "field",
+                    "operator": "equal",
+                    "value": [
+                      "${nodeID}"
+                    ],
+                    "valueError": [
+                      null
+                    ],
+                    "valueSrc": [
+                      "value"
+                    ],
+                    "valueType": [
+                      "text"
+                    ]
+                  },
+                  "type": "rule"
+                }
+              ],
+              "id": "9b988aa8-0123-4456-b89a-b1913556a003",
+              "type": "group"
+            },
+            "whereString": "node_id = '${nodeID}'"
+          },
+          "table": "node_configurations"
+        }
+      ],
+      "title": "Node configuration details",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {},
+            "includeByName": {},
+            "indexByName": {},
+            "renameByName": {
+              "air_quality_update_interval": "Air quality update interval",
+              "air_quality_update_last_timestamp": "Air quality (Timestamp)",
+              "device_update_interval": "Device information update interval",
+              "device_update_last_timestamp": "Device information (Timestamp)",
+              "environment_update_interval": "Environment update interval",
+              "environment_update_last_timestamp": "Environment (Timestamp)",
+              "last_updated": "Last updated",
+              "map_broadcast_interval": "Map Broadcast update interval",
+              "map_broadcast_last_timestamp": "Map Broadcast (Timestamp)",
+              "mqtt_configured_root_topic": "Root topic at MQTT",
+              "mqtt_encryption_enabled": "Is MQTT encryption enabled",
+              "mqtt_info_last_timestamp": "MQTT Info (Timestamp)",
+              "mqtt_json_enabled": "Is MQTT JSON toggled on",
+              "neighbor_info_interval": "Neighbour Info update interval",
+              "neighbor_info_last_timestamp": "Neighbour Info (Timestamp)",
+              "node_id": "Node ID",
+              "pax_counter_interval": "PAX counter update interval",
+              "pax_counter_last_timestamp": "PAX counter (Timestamp)",
+              "power_update_interval": "Power update interval",
+              "power_update_last_timestamp": "Power (Timestamp)",
+              "range_test_interval": "Range test update interval",
+              "range_test_last_packet_timestamp": "Range test (Timestamp)"
+            }
+          }
+        },
+        {
+          "id": "reduce",
+          "options": {
+            "labelsToFields": false,
+            "reducers": [
+              "lastNotNull"
+            ]
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
         "type": "prometheus",
         "uid": "P1809F7CD0C75ACF3"
       },
@@ -946,7 +1110,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -956,7 +1121,7 @@
       },
       "gridPos": {
         "h": 5,
-        "w": 16,
+        "w": 9,
         "x": 8,
         "y": 17
       },
@@ -1103,14 +1268,8 @@
                 }
               }
             },
-            "filterData": {
-              "id": "byRefId",
-              "options": "A"
-            },
             "location": {
-              "latitude": "latitude_norm",
-              "longitude": "longitude_norm",
-              "mode": "coords"
+              "mode": "auto"
             },
             "name": "Layer 1",
             "tooltip": true,
@@ -1122,12 +1281,13 @@
         },
         "view": {
           "allLayers": true,
-          "id": "fit",
+          "id": "coords",
           "lastOnly": false,
-          "lat": 0,
+          "lat": 31.499467,
           "layer": "Layer 1",
-          "lon": 0,
-          "zoom": 15
+          "lon": 34.669663,
+          "padding": 2,
+          "zoom": 6.53
         }
       },
       "pluginVersion": "11.1.0",
@@ -1140,7 +1300,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT * ,\nlongitude * 1e-7 as \"longitude_norm\",\nlatitude * 1e-7 as \"latitude_norm\"\nFROM node_details \nWHERE node_id = '${nodeID}' LIMIT 1",
+          "rawSql": "SELECT node_id, short_name, long_name, hardware_model, role, mqtt_status, \nlongitude * 1e-7 as longitude,\nlatitude * 1e-7 as latitude,\naltitude\nFROM node_details \nWHERE node_id = '${nodeID}' LIMIT 1",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1237,7 +1397,7 @@
       },
       "gridPos": {
         "h": 5,
-        "w": 16,
+        "w": 9,
         "x": 8,
         "y": 22
       },
@@ -1499,6 +1659,274 @@
       ],
       "title": "Device voltage",
       "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
+      "description": "Displays the measured current from the channels (1,2,3)",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "mamp"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 35
+      },
+      "id": 18,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "P1809F7CD0C75ACF3"
+          },
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "expr": "telemetry_app_ch1_current{node_id=\"$nodeID\"}",
+          "fullMetaSearch": false,
+          "includeNullMetadata": true,
+          "instant": false,
+          "legendFormat": "Channel 1",
+          "range": true,
+          "refId": "A",
+          "useBackend": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "P1809F7CD0C75ACF3"
+          },
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "expr": "telemetry_app_ch2_current{node_id=\"$nodeID\"}",
+          "fullMetaSearch": false,
+          "hide": false,
+          "includeNullMetadata": true,
+          "instant": false,
+          "legendFormat": "Channel 2",
+          "range": true,
+          "refId": "B",
+          "useBackend": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "P1809F7CD0C75ACF3"
+          },
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "expr": "telemetry_app_ch3_current{node_id=\"$nodeID\"}",
+          "fullMetaSearch": false,
+          "hide": false,
+          "includeNullMetadata": true,
+          "instant": false,
+          "legendFormat": "Channel 3",
+          "range": true,
+          "refId": "C",
+          "useBackend": false
+        }
+      ],
+      "title": "Current measured from node",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
+      "description": "Measures the volage on channels (1,2,3)",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "volt"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 35
+      },
+      "id": 19,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "P1809F7CD0C75ACF3"
+          },
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "expr": "telemetry_app_ch1_voltage{node_id=\"$nodeID\"}",
+          "fullMetaSearch": false,
+          "includeNullMetadata": true,
+          "instant": false,
+          "legendFormat": "Channel 1",
+          "range": true,
+          "refId": "A",
+          "useBackend": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "P1809F7CD0C75ACF3"
+          },
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "expr": "telemetry_app_ch2_voltage{node_id=\"$nodeID\"}",
+          "fullMetaSearch": false,
+          "hide": false,
+          "includeNullMetadata": true,
+          "instant": false,
+          "legendFormat": "Channel 2",
+          "range": true,
+          "refId": "B",
+          "useBackend": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "P1809F7CD0C75ACF3"
+          },
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "expr": "telemetry_app_ch3_voltage{node_id=\"$nodeID\"}",
+          "fullMetaSearch": false,
+          "hide": false,
+          "includeNullMetadata": true,
+          "instant": false,
+          "legendFormat": "Channel 3",
+          "range": true,
+          "refId": "C",
+          "useBackend": false
+        }
+      ],
+      "title": "Voltage measured by the node",
+      "type": "timeseries"
     }
   ],
   "refresh": "1m",
@@ -1565,6 +1993,6 @@
   "timezone": "browser",
   "title": "Node Dashboard",
   "uid": "edqo1uh0eglq8g",
-  "version": 30,
+  "version": 52,
   "weekStart": ""
 }
