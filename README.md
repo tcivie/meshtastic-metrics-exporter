@@ -1,38 +1,133 @@
 # Meshtastic Metrics Exporter
 [![CodeQL](https://github.com/tcivie/meshtastic-metrics-exporter/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/tcivie/meshtastic-metrics-exporter/actions/workflows/github-code-scanning/codeql)
 
-The `meshtastic-metrics-exporter` is a tool designed to export nearly all available data from an MQTT server to a
-Prometheus server. It comes with a pre-configured Grafana dashboard connected to both data sources, allowing users to
-start creating dashboards immediately.
+The `meshtastic-metrics-exporter` is a tool designed to export nearly all available data from an MQTT server
+to a Prometheus server. It comes with a pre-configured Grafana dashboard connected to both data sources,
+allowing users to start creating dashboards immediately.
 
 ## Features
 
 - Exports a comprehensive set of metrics from an MQTT server to Prometheus.
 - Comes with a Grafana dashboard configured to connect to both Prometheus and Postgres data sources.
   - Comes with some basic dashboards, see the section below for general view of the dashboards
-- Stores node details (ID, short/long name, hardware details, and client type) in a Postgres server, which is also part of
-  the package.
+- Stores node details (ID, short/long name, hardware details, and client type) in a Postgres server, which is also part
+  of the package.
 - Configuration via a `.env` file.
 
-### Grafana Dashboards
-The project comes wtih 2 dashboards.
-#### Main Dashboard
-<img width="1514" alt="SCR-20240707-qgnn" src="https://github.com/tcivie/meshtastic-metrics-exporter/assets/87943721/9679c140-c5f7-4ea5-bfc6-0173b52fb28c">
+### Database Structure
 
-> The dashboard has some basic data about the mesh network and it's data is temporarely updated (With new data coming in it would fill out the missing pieces automatically)
+The system uses PostgreSQL with the following tables:
+
+#### 1. messages
+
+- Stores message IDs and timestamps
+- Auto-expires messages older than 1 minute using a trigger
+
+```sql
+Columns:
+- id (TEXT, PRIMARY KEY)
+- received_at (TIMESTAMP)
+```
+
+#### 2. node_details
+
+- Stores basic information about mesh nodes
+
+```sql
+Columns:
+- node_id (VARCHAR, PRIMARY KEY)
+- short_name (VARCHAR)
+- long_name (VARCHAR)
+- hardware_model (VARCHAR)
+- role (VARCHAR)
+- mqtt_status (VARCHAR, default 'none')
+- longitude (INT)
+- latitude (INT)
+- altitude (INT)
+- precision (INT)
+- created_at (TIMESTAMP)
+- updated_at (TIMESTAMP)
+```
+
+#### 3. node_neighbors
+
+- Tracks connections between nodes
+
+```sql
+Columns:
+- id (SERIAL, PRIMARY KEY)
+- node_id (VARCHAR, FOREIGN KEY)
+- neighbor_id (VARCHAR, FOREIGN KEY)
+- snr (FLOAT)
+```
+
+#### 4. node_configurations
+
+- Stores detailed configuration and timing information for nodes
+
+```sql
+Columns:
+- node_id (VARCHAR, PRIMARY KEY)
+- last_updated (TIMESTAMP)
+- environment_update_interval (INTERVAL)
+- environment_update_last_timestamp (TIMESTAMP)
+- device_update_interval (INTERVAL)
+- device_update_last_timestamp (TIMESTAMP)
+- air_quality_update_interval (INTERVAL)
+- air_quality_update_last_timestamp (TIMESTAMP)
+- power_update_interval (INTERVAL)
+- power_update_last_timestamp (TIMESTAMP)
+- range_test_interval (INTERVAL)
+- range_test_packets_total (INT)
+- range_test_first_packet_timestamp (TIMESTAMP)
+- range_test_last_packet_timestamp (TIMESTAMP)
+- pax_counter_interval (INTERVAL)
+- pax_counter_last_timestamp (TIMESTAMP)
+- neighbor_info_interval (INTERVAL)
+- neighbor_info_last_timestamp (TIMESTAMP)
+- mqtt_encryption_enabled (BOOLEAN)
+- mqtt_json_enabled (BOOLEAN)
+- mqtt_json_message_timestamp (TIMESTAMP)
+- mqtt_configured_root_topic (TEXT)
+- mqtt_info_last_timestamp (TIMESTAMP)
+- map_broadcast_interval (INTERVAL)
+- map_broadcast_last_timestamp (TIMESTAMP)
+```
+
+### Grafana Dashboards
+
+The project comes with 2 dashboards.
+
+#### Main Dashboard
+
+![Main Dashboard](https://github.com/tcivie/meshtastic-metrics-exporter/assets/87943721/9679c140-c5f7-4ea5-bfc6-0173b52fb28c)
+
+> The dashboard has some basic data about the mesh network and its data is temporarily updated
+> (With new data coming in it would fill out the missing pieces automatically)
+
+**Note:** The dashboard contains links to nodes that target `localhost:3000`.
+If you're accessing Grafana from a different host, you'll need to modify these links in the panel configuration
+to match your Grafana server's address.
 
 #### User Panel
-<img width="1470" alt="SCR-20240707-qhth" src="https://github.com/tcivie/meshtastic-metrics-exporter/assets/87943721/58f15190-127d-4481-b896-1c3e2121dea5">
 
-> This panel can be reached from the "Node ID" link on the main dashboard (The table in the center) or you can go to it from the dashbaords tab in grafana and select the node you want to spectate. This board includes some telemetry data and basic information about the node.
+![User Panel](https://github.com/tcivie/meshtastic-metrics-exporter/assets/87943721/58f15190-127d-4481-b896-1c3e2121dea5)
+
+> This panel can be reached from the "Node ID" link on the main dashboard (The table in the center)
+> or you can go to it from the dashboards tab in Grafana and select the node you want to spectate.
+> This board includes some telemetry data and basic information about the node.
 
 #### The Node Graph
-<img width="585" alt="SCR-20240707-qjaj" src="https://github.com/tcivie/meshtastic-metrics-exporter/assets/87943721/d29b2ac4-6291-4095-9938-e6e63df15098">
+
+![Node Graph](https://github.com/tcivie/meshtastic-metrics-exporter/assets/87943721/d29b2ac4-6291-4095-9938-e6e63df15098)
 
 > Both boards also include node graph which allows you to view nodes which are sending [Neighbour Info packets](https://meshtastic.org/docs/configuration/module/neighbor-info)
-> As long as we have some node which is connected to our MQTT server the data would be read buy the exporter and parsed as node graph. The line colors indicate the SNR value and the arrow is the direction of the flow captured (It can be two way). And the node circle color indicates which node is connected to MQTT (Green) which one is disconnected from MQTT (Red) and unknown (Gray - Never connected to the MQTT server)
+> As long as we have some node which is connected to our MQTT server the data would be read by the exporter
+> and parsed as node graph. The line colors indicate the SNR value and the arrow is the direction of the flow captured
+> (It can be two way). And the node circle color indicates which node is connected to MQTT (Green)
+> which one is disconnected from MQTT (Red) and unknown (Gray - Never connected to the MQTT server)
 
-**I highly recomend giving the system to stabilize over 24 hours before seeking any useful information from it.**
+**It is highly recommended to give the system 24 hours to stabilize before seeking any useful information from it.**
 
 ## Exported Metrics
 
@@ -43,65 +138,52 @@ Label Notation:
 - 🏷️ (source): Indicates that all common labels are used, prefixed with "source_" (e.g., source_node_id, source_short_name, etc.).
 - 🏷️ (destination): Indicates that all common labels are used, prefixed with "destination_" (e.g., destination_node_id, destination_short_name, etc.).
 
-The following is a list of metrics exported by the `meshtastic-metrics-exporter`:
+### Available Metrics
 
-| Metric Name                       | Description                                                                  | Type      | Labels                               |
-|-----------------------------------|------------------------------------------------------------------------------|-----------|--------------------------------------|
-| text_message_app_length           | Length of text messages processed by the app                                 | Histogram | 🏷️                                   |
-| device_latitude                   | Device latitude                                                              | Gauge     | 🏷️                                   |
-| device_longitude                  | Device longitude                                                             | Gauge     | 🏷️                                   |
-| device_altitude                   | Device altitude                                                              | Gauge     | 🏷️                                   |
-| device_position_precision         | Device position precision                                                    | Gauge     | 🏷️                                   |
-| telemetry_app_ch1_voltage         | Voltage measured by the device on channel 1                                  | Gauge     | 🏷️                                   |
-| telemetry_app_ch1_current         | Current measured by the device on channel 1                                  | Gauge     | 🏷️                                   |
-| telemetry_app_ch2_voltage         | Voltage measured by the device on channel 2                                  | Gauge     | 🏷️                                   |
-| telemetry_app_ch2_current         | Current measured by the device on channel 2                                  | Gauge     | 🏷️                                   |
-| telemetry_app_ch3_voltage         | Voltage measured by the device on channel 3                                  | Gauge     | 🏷️                                   |
-| telemetry_app_ch3_current         | Current measured by the device on channel 3                                  | Gauge     | 🏷️                                   |
-| telemetry_app_pm10_standard       | Concentration Units Standard PM1.0                                           | Gauge     | 🏷️                                   |
-| telemetry_app_pm25_standard       | Concentration Units Standard PM2.5                                           | Gauge     | 🏷️                                   |
-| telemetry_app_pm100_standard      | Concentration Units Standard PM10.0                                          | Gauge     | 🏷️                                   |
-| telemetry_app_pm10_environmental  | Concentration Units Environmental PM1.0                                      | Gauge     | 🏷️                                   |
-| telemetry_app_pm25_environmental  | Concentration Units Environmental PM2.5                                      | Gauge     | 🏷️                                   |
-| telemetry_app_pm100_environmental | Concentration Units Environmental PM10.0                                     | Gauge     | 🏷️                                   |
-| telemetry_app_particles_03um      | 0.3um Particle Count                                                         | Gauge     | 🏷️                                   |
-| telemetry_app_particles_05um      | 0.5um Particle Count                                                         | Gauge     | 🏷️                                   |
-| telemetry_app_particles_10um      | 1.0um Particle Count                                                         | Gauge     | 🏷️                                   |
-| telemetry_app_particles_25um      | 2.5um Particle Count                                                         | Gauge     | 🏷️                                   |
-| telemetry_app_particles_50um      | 5.0um Particle Count                                                         | Gauge     | 🏷️                                   |
-| telemetry_app_particles_100um     | 10.0um Particle Count                                                        | Gauge     | 🏷️                                   |
-| telemetry_app_temperature         | Temperature measured by the device                                           | Gauge     | 🏷️                                   |
-| telemetry_app_relative_humidity   | Relative humidity percent measured by the device                             | Gauge     | 🏷️                                   |
-| telemetry_app_barometric_pressure | Barometric pressure in hPA measured by the device                            | Gauge     | 🏷️                                   |
-| telemetry_app_gas_resistance      | Gas resistance in MOhm measured by the device                                | Gauge     | 🏷️                                   |
-| telemetry_app_iaq                 | IAQ value measured by the device (0-500)                                     | Gauge     | 🏷️                                   |
-| telemetry_app_distance            | Distance measured by the device in mm                                        | Gauge     | 🏷️                                   |
-| telemetry_app_lux                 | Ambient light measured by the device in Lux                                  | Gauge     | 🏷️                                   |
-| telemetry_app_white_lux           | White light measured by the device in Lux                                    | Gauge     | 🏷️                                   |
-| telemetry_app_ir_lux              | Infrared light measured by the device in Lux                                 | Gauge     | 🏷️                                   |
-| telemetry_app_uv_lux              | Ultraviolet light measured by the device in Lux                              | Gauge     | 🏷️                                   |
-| telemetry_app_wind_direction      | Wind direction in degrees measured by the device                             | Gauge     | 🏷️                                   |
-| telemetry_app_wind_speed          | Wind speed in m/s measured by the device                                     | Gauge     | 🏷️                                   |
-| telemetry_app_weight              | Weight in KG measured by the device                                          | Gauge     | 🏷️                                   |
-| telemetry_app_battery_level       | Battery level of the device (0-100, >100 means powered)                      | Gauge     | 🏷️                                   |
-| telemetry_app_voltage             | Voltage measured by the device                                               | Gauge     | 🏷️                                   |
-| telemetry_app_channel_utilization | Utilization for the current channel, including well-formed TX, RX, and noise | Gauge     | 🏷️                                   |
-| telemetry_app_air_util_tx         | Percent of airtime for transmission used within the last hour                | Gauge     | 🏷️                                   |
-| telemetry_app_uptime_seconds      | How long the device has been running since the last reboot (in seconds)      | Counter   | 🏷️                                   |
-| route_length                      | Number of nodes in the route                                                 | Counter   | 🏷️                                   |
-| route_response                    | Number of responses to route discovery                                       | Counter   | 🏷️, response_type                    |
-| mesh_packet_source_types          | Types of mesh packets processed by source                                    | Counter   | 🏷️ (source), portnum                 |
-| mesh_packet_destination_types     | Types of mesh packets processed by destination                               | Counter   | 🏷️ (destination), portnum            |
-| mesh_packet_total                 | Total number of mesh packets processed                                       | Counter   | 🏷️ (source), 🏷️ (destination)        |
-| mesh_packet_rx_time               | Receive time of mesh packets (seconds since 1970)                            | Histogram | 🏷️ (source), 🏷️ (destination)        |
-| mesh_packet_rx_snr                | Receive SNR of mesh packets                                                  | Gauge     | 🏷️ (source), 🏷️ (destination)        |
-| mesh_packet_hop_limit             | Hop limit of mesh packets                                                    | Counter   | 🏷️ (source), 🏷️ (destination)        |
-| mesh_packet_want_ack              | Occurrences of want ACK for mesh packets                                     | Counter   | 🏷️ (source), 🏷️ (destination)        |
-| mesh_packet_via_mqtt              | Occurrences of mesh packets sent via MQTT                                    | Counter   | 🏷️ (source), 🏷️ (destination)        |
-| mesh_packet_hop_start             | Hop start of mesh packets                                                    | Gauge     | 🏷️ (source), 🏷️ (destination)        |
-| mesh_packet_ids                   | Unique IDs for mesh packets                                                  | Counter   | 🏷️ (source), 🏷️ (destination), packet_id |
-| mesh_packet_channel               | Channel used for mesh packets                                                | Counter   | 🏷️ (source), 🏷️ (destination), channel |
-| mesh_packet_rx_rssi               | Receive RSSI of mesh packets                                                 | Gauge     | 🏷️ (source), 🏷️ (destination)        |
+| Metric Name                                    | Description                                      | Type      | Labels                                     |
+|------------------------------------------------|--------------------------------------------------|-----------|--------------------------------------------|
+| text_message_app_length                        | Length of text messages processed by the app     | Histogram | 🏷️                                        |
+| device_latitude                                | Device latitude                                  | Gauge     | 🏷️                                        |
+| device_longitude                               | Device longitude                                 | Gauge     | 🏷️                                        |
+| device_altitude                                | Device altitude                                  | Gauge     | 🏷️                                        |
+| device_position_precision                      | Device position precision                        | Gauge     | 🏷️                                        |
+| telemetry_app_ch[1-3]_voltage                  | Voltage measured by the device on channels 1-3   | Gauge     | 🏷️                                        |
+| telemetry_app_ch[1-3]_current                  | Current measured by the device on channels 1-3   | Gauge     | 🏷️                                        |
+| telemetry_app_pm[10/25/100]_standard           | Concentration Units Standard PM1.0/2.5/10.0      | Gauge     | 🏷️                                        |
+| telemetry_app_pm[10/25/100]_environmental      | Concentration Units Environmental PM1.0/2.5/10.0 | Gauge     | 🏷️                                        |
+| telemetry_app_particles_[03/05/10/25/50/100]um | Particle Count for different sizes               | Gauge     | 🏷️                                        |
+| telemetry_app_temperature                      | Temperature measured by the device               | Gauge     | 🏷️                                        |
+| telemetry_app_relative_humidity                | Relative humidity percent                        | Gauge     | 🏷️                                        |
+| telemetry_app_barometric_pressure              | Barometric pressure in hPA                       | Gauge     | 🏷️                                        |
+| telemetry_app_gas_resistance                   | Gas resistance in MOhm                           | Gauge     | 🏷️                                        |
+| telemetry_app_iaq                              | IAQ value (0-500)                                | Gauge     | 🏷️                                        |
+| telemetry_app_distance                         | Distance in mm                                   | Gauge     | 🏷️                                        |
+| telemetry_app_lux                              | Ambient light in Lux                             | Gauge     | 🏷️                                        |
+| telemetry_app_white_lux                        | White light in Lux                               | Gauge     | 🏷️                                        |
+| telemetry_app_ir_lux                           | Infrared light in Lux                            | Gauge     | 🏷️                                        |
+| telemetry_app_uv_lux                           | Ultraviolet light in Lux                         | Gauge     | 🏷️                                        |
+| telemetry_app_wind_direction                   | Wind direction in degrees                        | Gauge     | 🏷️                                        |
+| telemetry_app_wind_speed                       | Wind speed in m/s                                | Gauge     | 🏷️                                        |
+| telemetry_app_weight                           | Weight in KG                                     | Gauge     | 🏷️                                        |
+| telemetry_app_battery_level                    | Battery level (0-100, >100 means powered)        | Gauge     | 🏷️                                        |
+| telemetry_app_voltage                          | Voltage                                          | Gauge     | 🏷️                                        |
+| telemetry_app_channel_utilization              | Channel utilization including TX, RX, and noise  | Gauge     | 🏷️                                        |
+| telemetry_app_air_util_tx                      | Airtime utilization for TX in last hour          | Gauge     | 🏷️                                        |
+| telemetry_app_uptime_seconds                   | Device uptime in seconds                         | Counter   | 🏷️                                        |
+| route_length                                   | Number of nodes in route                         | Counter   | 🏷️                                        |
+| route_response                                 | Number of route discovery responses              | Counter   | 🏷️, response_type                         |
+| mesh_packet_source_types                       | Mesh packet types by source                      | Counter   | 🏷️ (source), portnum                      |
+| mesh_packet_destination_types                  | Mesh packet types by destination                 | Counter   | 🏷️ (destination), portnum                 |
+| mesh_packet_total                              | Total mesh packets processed                     | Counter   | 🏷️ (source), 🏷️ (destination)            |
+| mesh_packet_rx_time                            | Packet receive time (seconds since 1970)         | Histogram | 🏷️ (source), 🏷️ (destination)            |
+| mesh_packet_rx_snr                             | Packet receive SNR                               | Gauge     | 🏷️ (source), 🏷️ (destination)            |
+| mesh_packet_hop_limit                          | Packet hop limit                                 | Counter   | 🏷️ (source), 🏷️ (destination)            |
+| mesh_packet_want_ack                           | Want ACK occurrences                             | Counter   | 🏷️ (source), 🏷️ (destination)            |
+| mesh_packet_via_mqtt                           | MQTT transmission occurrences                    | Counter   | 🏷️ (source), 🏷️ (destination)            |
+| mesh_packet_hop_start                          | Packet hop start                                 | Gauge     | 🏷️ (source), 🏷️ (destination)            |
+| mesh_packet_ids                                | Unique packet IDs                                | Counter   | 🏷️ (source), 🏷️ (destination), packet_id |
+| mesh_packet_channel                            | Packet channel                                   | Counter   | 🏷️ (source), 🏷️ (destination), channel   |
+| mesh_packet_rx_rssi                            | Packet receive RSSI                              | Gauge     | 🏷️ (source), 🏷️ (destination)            |
 
 ## Configuration
 
