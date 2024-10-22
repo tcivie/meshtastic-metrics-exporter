@@ -104,7 +104,7 @@ if __name__ == "__main__":
 
     # Configure Prometheus exporter
     registry = CollectorRegistry()
-    start_http_server(int(os.getenv('PROMETHEUS_COLLECTOR_PORT', 8000)), registry=registry)
+    start_http_server(int(os.getenv('PROMETHEUS_COLLECTOR_PORT', 9464)), registry=registry)
 
     # Create an MQTT client
     mqtt_protocol = os.getenv('MQTT_PROTOCOL', 'MQTTv5')
