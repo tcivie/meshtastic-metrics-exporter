@@ -305,7 +305,7 @@
           }
         ]
       },
-      "pluginVersion": "11.1.0",
+      "pluginVersion": "11.2.2+security-01",
       "targets": [
         {
           "datasource": {
@@ -348,8 +348,8 @@
             "uid": "P1809F7CD0C75ACF3"
           },
           "disableTextWrap": false,
-          "editorMode": "builder",
-          "expr": "sum by(portnum, source_id) (mesh_packet_destination_types_total)",
+          "editorMode": "code",
+          "expr": "sum by(source_id, portnum) (\n  mesh_packet_source_types_total\nand\n(mesh_packet_source_types_total - mesh_packet_source_types_total offset $__range) != 0\n)",
           "fullMetaSearch": false,
           "hide": false,
           "includeNullMetadata": false,
@@ -357,6 +357,35 @@
           "range": true,
           "refId": "Packet Types",
           "useBackend": false
+        },
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "SELECT\n  node_id,\n  CASE\n    WHEN EXTRACT(EPOCH FROM environment_update_interval) > 1\n    THEN to_char(environment_update_interval, 'HH24:MI:SS')\n    ELSE NULL\n  END AS environment_update_interval,\n  CASE\n    WHEN EXTRACT(EPOCH FROM device_update_interval) > 1\n    THEN to_char(device_update_interval, 'HH24:MI:SS')\n    ELSE NULL\n  END AS device_update_interval,\n  CASE\n    WHEN EXTRACT(EPOCH FROM air_quality_update_interval) > 1\n    THEN to_char(air_quality_update_interval, 'HH24:MI:SS')\n    ELSE NULL\n  END AS air_quality_update_interval,\n  CASE\n    WHEN EXTRACT(EPOCH FROM power_update_interval) > 1\n    THEN to_char(power_update_interval, 'HH24:MI:SS')\n    ELSE NULL\n  END AS power_update_interval,\n  CASE\n    WHEN EXTRACT(EPOCH FROM range_test_interval) > 1\n    THEN to_char(range_test_interval, 'HH24:MI:SS')\n    ELSE NULL\n  END AS range_test_interval,\n  CASE\n    WHEN EXTRACT(EPOCH FROM pax_counter_interval) > 1\n    THEN to_char(pax_counter_interval, 'HH24:MI:SS')\n    ELSE NULL\n  END AS pax_counter_interval,\n  CASE\n    WHEN EXTRACT(EPOCH FROM neighbor_info_interval) > 1\n    THEN to_char(neighbor_info_interval, 'HH24:MI:SS')\n    ELSE NULL\n  END AS neighbor_info_interval,\n  CASE\n    WHEN EXTRACT(EPOCH FROM map_broadcast_interval) > 1\n    THEN to_char(map_broadcast_interval, 'HH24:MI:SS')\n    ELSE NULL\n  END AS map_broadcast_interval,\n  mqtt_encryption_enabled,\n  mqtt_json_enabled,\n  mqtt_configured_root_topic,\n  last_updated\nFROM node_configurations\nWHERE\n  EXTRACT(EPOCH FROM environment_update_interval) > 1 OR\n   EXTRACT(EPOCH FROM device_update_interval) > 1 OR\n   EXTRACT(EPOCH FROM air_quality_update_interval) > 1 OR\n   EXTRACT(EPOCH FROM power_update_interval) > 1 OR\n   EXTRACT(EPOCH FROM range_test_interval) > 1 OR\n   EXTRACT(EPOCH FROM pax_counter_interval) > 1 OR\n   EXTRACT(EPOCH FROM neighbor_info_interval) > 1 OR\n   EXTRACT(EPOCH FROM map_broadcast_interval) > 1",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
         }
       ],
       "title": "General Information",
@@ -419,6 +448,6 @@
   "timezone": "browser",
   "title": "Investigation Board",
   "uid": "adrqynul4j3eoa",
-  "version": 17,
+  "version": 29,
   "weekStart": ""
 }
