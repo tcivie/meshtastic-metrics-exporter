@@ -100,7 +100,7 @@ The project comes with 2 dashboards.
 
 #### Main Dashboard
 
-![Main Dashboard](https://github.com/tcivie/meshtastic-metrics-exporter/assets/87943721/9679c140-c5f7-4ea5-bfc6-0173b52fb28c)
+<img width="1514" alt="SCR-20240707-qgnn" src="https://github.com/tcivie/meshtastic-metrics-exporter/assets/87943721/9679c140-c5f7-4ea5-bfc6-0173b52fb28c">
 
 > The dashboard has some basic data about the mesh network and its data is temporarily updated
 > (With new data coming in it would fill out the missing pieces automatically)
@@ -111,7 +111,7 @@ to match your Grafana server's address.
 
 #### User Panel
 
-![User Panel](https://github.com/tcivie/meshtastic-metrics-exporter/assets/87943721/58f15190-127d-4481-b896-1c3e2121dea5)
+<img width="1470" alt="SCR-20240707-qhth" src="https://github.com/tcivie/meshtastic-metrics-exporter/assets/87943721/58f15190-127d-4481-b896-1c3e2121dea5">
 
 > This panel can be reached from the "Node ID" link on the main dashboard (The table in the center)
 > or you can go to it from the dashboards tab in Grafana and select the node you want to spectate.
@@ -119,7 +119,7 @@ to match your Grafana server's address.
 
 #### The Node Graph
 
-![Node Graph](https://github.com/tcivie/meshtastic-metrics-exporter/assets/87943721/d29b2ac4-6291-4095-9938-e6e63df15098)
+<img width="585" alt="SCR-20240707-qjaj" src="https://github.com/tcivie/meshtastic-metrics-exporter/assets/87943721/d29b2ac4-6291-4095-9938-e6e63df15098">
 
 > Both boards also include node graph which allows you to view nodes which are sending [Neighbour Info packets](https://meshtastic.org/docs/configuration/module/neighbor-info)
 > As long as we have some node which is connected to our MQTT server the data would be read by the exporter
