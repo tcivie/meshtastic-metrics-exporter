@@ -5,6 +5,13 @@ The `meshtastic-metrics-exporter` is a tool designed to export nearly all availa
 to a Prometheus server. It comes with a pre-configured Grafana dashboard connected to both data sources,
 allowing users to start creating dashboards immediately.
 
+## Public Dashboards
+
+You can explore these public instances to see the exporter in action:
+
+- **Canadaverse Dashboard**: [dash.mt.gt](https://dash.mt.gt) (Guest access: username: `guest`, password: `guest`)
+  > This instance demonstrates the metrics exporter's capabilities in a production environment, maintained by [@tb0hdan](https://github.com/tb0hdan).
+
 ## Features
 
 - Exports a comprehensive set of metrics from an MQTT server to Prometheus.
