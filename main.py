@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 
 from constants import callback_api_version_map, protocol_map
 from exporter.metric.node_configuration_metrics import NodeConfigurationMetrics
+from exporter.metric_cleanup_job import MetricCleanupJob
 
 try:
     from meshtastic.mesh_pb2 import MeshPacket
@@ -135,5 +136,8 @@ if __name__ == "__main__":
 
     # Configure the Processor and the Exporter
     processor = MessageProcessor(registry, connection_pool)
+
+    cleanup_job = MetricCleanupJob(registry)
+    cleanup_job.start()
 
     mqtt_client.loop_forever()

@@ -149,14 +149,15 @@ class MessageProcessor:
     def process_json_mqtt(message):
         topic = message.topic
         json_packet = json.loads(message.payload)
-        if json_packet['sender'][0] == '!':
-            gateway_node_id = str(int(json_packet['sender'][1:], 16))
-            NodeConfigurationMetrics().process_mqtt_update(
-                node_id=gateway_node_id,
-                mqtt_json_enabled=True,
-                mqtt_encryption_enabled=json_packet.get('encrypted', False),
-                mqtt_configured_root_topic=topic
-            )
+        if 'sender' in json_packet:
+            if json_packet['sender'][0] == '!':
+                gateway_node_id = str(int(json_packet['sender'][1:], 16))
+                NodeConfigurationMetrics().process_mqtt_update(
+                    node_id=gateway_node_id,
+                    mqtt_json_enabled=True,
+                    mqtt_encryption_enabled=json_packet.get('encrypted', False),
+                    mqtt_configured_root_topic=topic
+                )
 
     @staticmethod
     def process_mqtt(topic: str, service_envelope: ServiceEnvelope, mesh_packet: MeshPacket):
