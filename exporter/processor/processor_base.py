@@ -308,6 +308,8 @@ class MessageProcessor:
         ).set(mesh_packet.rx_rssi)
 
     def _get_client_details(self, node_id: int) -> ClientDetails:
+        if node_id == 4294967295 or node_id == 1:  # FFFFFFFF or 1 (Broadcast)
+            return ClientDetails(node_id=node_id, short_name='Broadcast', long_name='Broadcast')
         node_id_str = str(node_id)  # Convert the integer to a string
         with self.db_pool.connection() as conn:
             with conn.cursor() as cur:
