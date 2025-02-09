@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 
 from constants import callback_api_version_map, protocol_map
 from exporter.metric.node_configuration_metrics import NodeConfigurationMetrics
-from exporter.metric_cleanup_job import MetricCleanupJob
+from exporter.metric_cleanup_job import MetricTrackingRegistry
 
 try:
     from meshtastic.mesh_pb2 import MeshPacket
@@ -16,7 +16,7 @@ except ImportError:
     from meshtastic.protobuf.mesh_pb2 import MeshPacket
     from meshtastic.protobuf.mqtt_pb2 import ServiceEnvelope
 
-from prometheus_client import CollectorRegistry, start_http_server
+from prometheus_client import start_http_server
 from psycopg_pool import ConnectionPool
 
 connection_pool = None
@@ -104,7 +104,7 @@ if __name__ == "__main__":
     node_conf_metrics = NodeConfigurationMetrics(connection_pool)
 
     # Configure Prometheus exporter
-    registry = CollectorRegistry()
+    registry = MetricTrackingRegistry()
     start_http_server(int(os.getenv('PROMETHEUS_COLLECTOR_PORT', 9464)), registry=registry)
 
     # Create an MQTT client
@@ -136,8 +136,5 @@ if __name__ == "__main__":
 
     # Configure the Processor and the Exporter
     processor = MessageProcessor(registry, connection_pool)
-
-    cleanup_job = MetricCleanupJob(registry)
-    cleanup_job.start()
 
     mqtt_client.loop_forever()
