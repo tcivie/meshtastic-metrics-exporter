@@ -5,16 +5,17 @@ import sys
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from meshtastic.protobuf.mqtt_pb2 import ServiceEnvelope
 
 from exporter.metric.node_configuration_metrics import NodeConfigurationMetrics
 
 try:
     from meshtastic.mesh_pb2 import MeshPacket, Data, HardwareModel
     from meshtastic.portnums_pb2 import PortNum
+    from meshtastic.mqtt_pb2 import ServiceEnvelope
 except ImportError:
     from meshtastic.protobuf.mesh_pb2 import MeshPacket, Data, HardwareModel
     from meshtastic.protobuf.portnums_pb2 import PortNum
+    from meshtastic.protobuf.mqtt_pb2 import ServiceEnvelope
 
 from prometheus_client import CollectorRegistry, Counter, Gauge
 from psycopg_pool import ConnectionPool
