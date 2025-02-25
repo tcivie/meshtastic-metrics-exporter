@@ -267,6 +267,16 @@ class PaxCounterAppProcessor(Processor):
         except Exception as e:
             logger.error(f"Failed to parse PAXCOUNTER_APP packet: {e}")
             return
+        self.metrics.pax_wifi_gauge.labels(
+            **client_details.to_dict()
+        ).set(paxcounter.wifi)
+        self.metrics.pax_ble_gauge.labels(
+            **client_details.to_dict()
+        ).set(paxcounter.ble)
+        self.metrics.pax_uptime_gauge.labels(
+            **client_details.to_dict()
+        ).set(paxcounter.uptime)
+
 
 
 @ProcessorRegistry.register_processor(PortNum.SERIAL_APP)

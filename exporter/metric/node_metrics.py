@@ -1,4 +1,5 @@
 from datetime import datetime
+
 from prometheus_client import CollectorRegistry, Counter, Gauge
 
 from exporter.client_details import ClientDetails
@@ -35,6 +36,7 @@ class Metrics:
         self._init_metrics_telemetry_air_quality()
         self._init_metrics_telemetry_power()
         self._init_route_discovery_metrics()
+        self._init_pax_counter_metrics()
 
     def update_metrics_position(self, latitude, longitude, altitude, precision, client_details: ClientDetails):
         # Could be used to calculate more complex data (Like distances etc..)
@@ -326,5 +328,25 @@ class Metrics:
             'route_response',
             'Number of responses to route discovery',
             self._get_common_labels() + ['response_type'],
+            registry=self._registry
+        )
+
+    def _init_pax_counter_metrics(self):
+        self.pax_wifi_gauge = Gauge(
+            'pax_wifi',
+            'Number of WiFi devices',
+            self._get_common_labels(),
+            registry=self._registry
+        )
+        self.pax_ble_gauge = Gauge(
+            'pax_ble',
+            'Number of BLE devices',
+            self._get_common_labels(),
+            registry=self._registry
+        )
+        self.pax_uptime_gauge = Gauge(
+            'pax_uptime',
+            'Uptime of the device',
+            self._get_common_labels(),
             registry=self._registry
         )

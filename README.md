@@ -192,6 +192,9 @@ Label Notation:
 | mesh_packet_ids                                | Unique packet IDs                                | Counter   | 🏷️ (source), 🏷️ (destination), packet_id |
 | mesh_packet_channel                            | Packet channel                                   | Counter   | 🏷️ (source), 🏷️ (destination), channel   |
 | mesh_packet_rx_rssi                            | Packet receive RSSI                              | Gauge     | 🏷️ (source), 🏷️ (destination)            |
+| pax_wifi                                       | Number of Wifi devices (PAX)                     | Gauge     | 🏷                                         |
+| pax_ble                                        | Number of Bluetooth devices (PAX)                | Gauge     | 🏷                                         |
+| pax_uptime                                     | PAX device uptime                                | Gauge     | 🏷                                         |
 
 ## Configuration
 
