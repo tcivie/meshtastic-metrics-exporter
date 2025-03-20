@@ -2,12 +2,12 @@ paho-mqtt>=2.1.0
 python-dotenv>=1.0.1
 prometheus_client>=0.21.1
 unishox2-py3~=1.0.0
-cryptography>=44.0.1
-psycopg>=3.2.5
-psycopg_pool~=3.2.2
-psycopg-binary>=3.2.5
+cryptography>=44.0.2
+psycopg>=3.2.6
+psycopg_pool~=3.2.6
+psycopg-binary>=3.2.6
 geopy>=2.4.1
-psycopg-pool>=3.2.5
+psycopg-pool>=3.2.6
 APScheduler>=3.11.0
 
 # Meshtastic Protocol Buffers

@@ -5,7 +5,7 @@ volumes:
 
 services:
   prometheus:
-    image: prom/prometheus:v2.51.2
+    image: prom/prometheus:v2.55.1
     restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -46,7 +46,7 @@ services:
       - mesh-bridge
 
   postgres:
-    image: postgres:16.3
+    image: postgres:16
     restart: unless-stopped
     networks:
       - mesh-bridge
