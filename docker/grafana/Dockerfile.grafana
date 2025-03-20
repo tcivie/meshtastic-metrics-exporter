@@ -1,4 +1,4 @@
-FROM grafana/grafana-oss:11.2.2-security-01
+FROM grafana/grafana-oss:11.2.7
 
 # Copy the datasource configuration
 COPY docker/grafana/provisioning/datasources/datasources.yml /etc/grafana/provisioning/datasources/datasources.yml
