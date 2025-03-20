@@ -46,7 +46,7 @@ services:
       - mesh-bridge
 
   postgres:
-    image: postgres:16.3
+    image: postgres:16
     restart: unless-stopped
     networks:
       - mesh-bridge
