@@ -5,7 +5,7 @@ volumes:
 
 services:
   prometheus:
-    image: prom/prometheus:v2.51.2
+    image: prom/prometheus:v2.55.1
     restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"
