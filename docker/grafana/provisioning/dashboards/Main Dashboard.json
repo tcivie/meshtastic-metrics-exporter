@@ -279,7 +279,7 @@
         "type": "grafana-postgresql-datasource",
         "uid": "PA942B37CCFAF5A81"
       },
-      "description": "How many nodes are Unknonw and how many are Known.\n\nThe unknown are ones that are either NULL in their long name or \"Unknown\" in their value",
+      "description": "How many nodes are unknown and how many are known.\n\nThe unknown are ones that are either NULL in their long name or \"Unknown\" in their value",
       "fieldConfig": {
         "defaults": {
           "color": {
