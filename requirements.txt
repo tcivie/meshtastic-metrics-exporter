@@ -9,6 +9,7 @@ psycopg-binary>=3.2.6
 geopy>=2.4.1
 psycopg-pool>=3.2.6
 APScheduler>=3.11.0
+humanfriendly>=10.0
 
 # Meshtastic Protocol Buffers
 meshtastic-protobufs-protocolbuffers-python==29.3.0.1.20241006120827+cc36fd21e859

@@ -1,5 +1,6 @@
 import base64
 import json
+import logging
 import os
 import sys
 
@@ -193,7 +194,8 @@ class MessageProcessor:
                 try:
                     data.ParseFromString(decrypted_bytes)
                 except Exception as e:
-                    print(f"Failed to decrypt message: {e}")
+                    logging.warning(
+                        f"Failed to decrypt message from node {getattr(mesh_packet, 'from', 'unknown')} (hex: {getattr(mesh_packet, 'from', 'unknown'):x}) with packet ID {getattr(mesh_packet, 'id', 'unknown')}: {e}")
                     return
                 mesh_packet.decoded.CopyFrom(data)
             port_num = int(mesh_packet.decoded.portnum)
@@ -217,7 +219,7 @@ class MessageProcessor:
             processor = ProcessorRegistry.get_processor(port_num)(self.registry, self.db_pool)
             processor.process(payload, client_details=source_client_details)
         except Exception as e:
-            print(f"Failed to process message: {e}")
+            logging.warning(f"Failed to process message: {e}")
             return
 
     @staticmethod
