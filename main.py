@@ -1,7 +1,8 @@
 import logging
 import os
-from datetime import datetime
+from logging.handlers import RotatingFileHandler
 
+import humanfriendly
 import paho.mqtt.client as mqtt
 from dotenv import load_dotenv
 
@@ -31,10 +32,12 @@ def release_connection(conn):
 
 
 def handle_connect(client, userdata, flags, reason_code, properties):
-    print(f"Connected with result code {reason_code}")
     topics = os.getenv('MQTT_TOPIC', 'msh/israel/#').split(',')
     topics_tuples = [(topic, 0) for topic in topics]
-    client.subscribe(topics_tuples)
+    err, code = client.subscribe(topics_tuples)
+    if err:
+        logging.error(
+            f"Error subscribing to topics: {err} with code {code} for {topics_tuples} and reason code {reason_code}")
 
 
 def update_node_status(node_number, status):
@@ -48,10 +51,12 @@ def update_node_status(node_number, status):
 
 
 def handle_message(client, userdata, message):
-    current_timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    print(f"Received message on topic '{message.topic}' at {current_timestamp}")
+    logging.debug(f"Received message on topic '{message.topic}'")
     if '/json/' in message.topic:
-        processor.process_json_mqtt(message)
+        try:
+            processor.process_json_mqtt(message)
+        except Exception as e:
+            logging.error(f"Failed to handle JSON message: {e}")
         # Ignore JSON messages as there are also protobuf messages sent on other topic
         # Source: https://github.com/meshtastic/firmware/blob/master/src/mqtt/MQTT.cpp#L448
         return
@@ -91,6 +96,26 @@ def handle_message(client, userdata, message):
 
 if __name__ == "__main__":
     load_dotenv()
+
+    # Configure logging
+    log_level = os.getenv('LOG_LEVEL', 'INFO').upper()
+    log_file_max_size = humanfriendly.parse_size(os.getenv('LOG_FILE_MAX_SIZE', '10MB'))
+    log_files_count = int(os.getenv('LOG_FILE_BACKUP_COUNT', 5))  # 5 backup files
+    handlers = [
+        RotatingFileHandler(
+            'exporter.log', maxBytes=log_file_max_size, backupCount=log_files_count
+        )
+    ]
+    if os.getenv('ENABLE_STREAM_HANDLER', 'true').lower() == 'true':
+        handlers.append(logging.StreamHandler())
+    else:
+        print("!!! Stream handler disabled !!! only file handler will be used - check exporter.log for logs")
+
+    logging.basicConfig(
+        handlers=handlers,
+        level=getattr(logging, log_level, logging.INFO),
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
 
     # We have to load_dotenv before we can import MessageProcessor to allow filtering of message types
     from exporter.processor.processor_base import MessageProcessor

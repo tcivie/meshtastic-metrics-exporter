@@ -1,3 +1,5 @@
+import logging
+import os
 from datetime import datetime, timedelta
 from typing import Any, Dict, Tuple
 
@@ -54,7 +56,7 @@ class MetricCleanupJob:
         self.scheduler.add_job(
             self.cleanup_stale_metrics,
             'interval',
-            minutes=10,
+            minutes=int(os.getenv('METRIC_CLEANUP_INTERVAL', 60)),
             next_run_time=datetime.now() + timedelta(minutes=1)
         )
         self.scheduler.start()
@@ -90,11 +92,11 @@ class MetricCleanupJob:
                             del collector._metrics[labels]
                             metric_key = (collector, labels)
                             self.last_updates.pop(metric_key, None)
-                            print(f"Removed stale metric entry with labels: {labels}")
+                            logging.debug(f"Removed stale metric entry with labels: {labels}")
                         except KeyError:
                             pass
                         except Exception as e:
-                            print(f"Error removing metric entry: {e}")
+                            logging.warning(f"Error removing metric entry: {e}")
 
         except Exception as e:
-            print(f"Error during metric cleanup: {e}")
+            logging.warning(f"Error during metric cleanup: {e}")
