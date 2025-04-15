@@ -206,6 +206,10 @@ The project uses a `.env` file for configuration. Here is an example of the conf
 # Postgres connection details
 DATABASE_URL=postgres://postgres:postgres@postgres:5432/meshtastic
 
+# Grafana Host and Port Config
+GRAFANA_HOST=localhost
+GRAFANA_PORT=3000
+
 # Prometheus connection details
 PROMETHEUS_COLLECTOR_PORT=9464
 PROMETHEUS_JOB=example
@@ -243,10 +247,10 @@ MQTT_CALLBACK_API_VERSION=VERSION2
 
 ## Running the Project
 
-To run the project, simply use Docker Compose:
+To run the project, simply run the `setup.sh` script
 
 ```bash
-docker compose up -d
+sh ./setup.sh
 ```
 
 This command will build and start all the necessary services, including the exporter, Prometheus server, Postgres
