@@ -44,6 +44,6 @@ fi
 					docker/grafana/provisioning/dashboards/Main\ Dashboard.json.tmpl > docker/grafana/provisioning/dashboards/Main\ Dashboard.json || (echo "failed to update template, exiting"; exit 1)
 
 echo "done! proceeding to standing up the docker containers"
-#docker compose up -d || (echo "failed to stand up docker containers, exiting"; exit 1)
+docker compose up -d || (echo "failed to stand up docker containers, exiting"; exit 1)
 
 exit 0
