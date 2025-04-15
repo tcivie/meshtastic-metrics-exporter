@@ -1502,7 +1502,7 @@
                   {
                     "targetBlank": true,
                     "title": "Go to node dashboard",
-                    "url": "http://localhost:3000/d/edqo1uh0eglq8g/node-dashboard?orgId=1&var-nodeID=${__data.fields[0]}"
+                    "url": "http://GRAFANA_HOST:GRAFANA_PORT/d/edqo1uh0eglq8g/node-dashboard?orgId=1&var-nodeID=${__data.fields[0]}"
                   }
                 ]
               },
@@ -1880,8 +1880,8 @@
         "view": {
           "allLayers": true,
           "id": "coords",
-          "lat": 32.008273,
-          "lon": 34.969099,
+          "lat": LOCAL_LAT,
+          "lon": LOCAL_LONG,
           "padding": 30,
           "zoom": 8
         }
