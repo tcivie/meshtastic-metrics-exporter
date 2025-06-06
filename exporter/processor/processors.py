@@ -3,11 +3,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from venv import logger
 
-import psycopg
 import unishox2
-
-from exporter.db_handler import DBHandler
-from exporter.metric.node_configuration_metrics import NodeConfigurationMetrics
 
 try:
     from meshtastic.admin_pb2 import AdminMessage
@@ -30,17 +26,16 @@ except ImportError:
     from meshtastic.protobuf.telemetry_pb2 import Telemetry, DeviceMetrics, EnvironmentMetrics, AirQualityMetrics, \
         PowerMetrics
 
-from prometheus_client import CollectorRegistry
 from psycopg_pool import ConnectionPool
 
 from exporter.client_details import ClientDetails
-from exporter.metric.node_metrics import Metrics
+from exporter.db_handler import DBHandler
 
 
 class Processor(ABC):
-    def __init__(self, registry: CollectorRegistry, db_pool: ConnectionPool):
+    def __init__(self, db_pool: ConnectionPool):
         self.db_pool = db_pool
-        self.metrics = Metrics(registry, DBHandler(db_pool))
+        self.db_handler = DBHandler(db_pool)
 
     @abstractmethod
     def process(self, payload: bytes, client_details: ClientDetails):
@@ -82,6 +77,7 @@ class UnknownAppProcessor(Processor):
 class TextMessageAppProcessor(Processor):
     def process(self, payload: bytes, client_details: ClientDetails):
         logger.debug("Received TEXT_MESSAGE_APP packet")
+        decoded_message = payload.decode('utf-8')
         pass
 
 
@@ -108,9 +104,21 @@ class PositionAppProcessor(Processor):
             logger.error(f"Failed to parse POSITION_APP packet: {e}")
             return
 
-        self.metrics.update_metrics_position(
-            position.latitude_i, position.longitude_i, position.altitude,
-            position.precision_bits, client_details)
+        if position.latitude_i != 0 and position.longitude_i != 0:
+            def db_operation(cur, conn):
+                cur.execute("""
+                            UPDATE node_details
+                            SET latitude   = %s,
+                                longitude  = %s,
+                                altitude   = %s,
+                                precision  = %s,
+                                updated_at = %s
+                            WHERE node_id = %s
+                            """, (position.latitude_i, position.longitude_i, position.altitude, position.precision_bits,
+                                  datetime.now().isoformat(), client_details.node_id))
+                conn.commit()
+
+            self.db_handler.execute_db_operation(db_operation)
         pass
 
 
@@ -170,7 +178,7 @@ class NodeInfoAppProcessor(Processor):
 
             conn.commit()
 
-        self.metrics.get_db().execute_db_operation(db_operation)
+        self.db_handler.execute_db_operation(db_operation)
 
 
 @ProcessorRegistry.register_processor(PortNum.ROUTING_APP)
@@ -183,10 +191,8 @@ class RoutingAppProcessor(Processor):
         except Exception as e:
             logger.error(f"Failed to parse ROUTING_APP packet: {e}")
             return
-        self.metrics.route_discovery_response_counter.labels(
-            **client_details.to_dict(),
-            response_type=self.get_error_name_from_routing(routing.error_reason)
-        ).inc()
+        # No need to store routing metrics in TimescaleDB
+        pass
 
     @staticmethod
     def get_error_name_from_routing(error_code):
@@ -260,22 +266,19 @@ class IpTunnelAppProcessor(Processor):
 class PaxCounterAppProcessor(Processor):
     def process(self, payload: bytes, client_details: ClientDetails):
         logger.debug("Received PAXCOUNTER_APP packet")
-        NodeConfigurationMetrics().process_pax_counter_update(client_details.node_id)
+        # Node configuration update is now handled by the database timestamps
         paxcounter = Paxcount()
         try:
             paxcounter.ParseFromString(payload)
         except Exception as e:
             logger.error(f"Failed to parse PAXCOUNTER_APP packet: {e}")
             return
-        self.metrics.pax_wifi_gauge.labels(
-            **client_details.to_dict()
-        ).set(paxcounter.wifi)
-        self.metrics.pax_ble_gauge.labels(
-            **client_details.to_dict()
-        ).set(paxcounter.ble)
-        self.metrics.pax_uptime_gauge.labels(
-            **client_details.to_dict()
-        ).set(paxcounter.uptime)
+
+        # Store PAX counter metrics in TimescaleDB
+        self.db_handler.store_pax_counter_metrics(client_details.node_id, {
+            'wifi_stations': getattr(paxcounter, 'wifi', 0),
+            'ble_beacons': getattr(paxcounter, 'ble', 0)
+        })
 
 
 
@@ -302,15 +305,12 @@ class StoreForwardAppProcessor(Processor):
 class RangeTestAppProcessor(Processor):
     def process(self, payload: bytes, client_details: ClientDetails):
         logger.debug("Received RANGE_TEST_APP packet")
-        NodeConfigurationMetrics().process_range_test_update(client_details.node_id)
+        # Node configuration update is now handled by the database timestamps
         pass  # NOTE: This portnum traffic is not sent to the public MQTT starting at firmware version 2.2.9
 
 
 @ProcessorRegistry.register_processor(PortNum.TELEMETRY_APP)
 class TelemetryAppProcessor(Processor):
-    def __init__(self, registry: CollectorRegistry, db_connection: psycopg.connection):
-        super().__init__(registry, db_connection)
-
     def process(self, payload: bytes, client_details: ClientDetails):
         logger.debug("Received TELEMETRY_APP packet")
         telemetry = Telemetry()
@@ -321,160 +321,72 @@ class TelemetryAppProcessor(Processor):
             return
 
         if telemetry.HasField('device_metrics'):
-            NodeConfigurationMetrics().process_device_update(client_details.node_id)
+            # Node configuration update is now handled by the database timestamps
             device_metrics: DeviceMetrics = telemetry.device_metrics
-            self.metrics.battery_level_gauge.labels(
-                **client_details.to_dict()
-            ).set(getattr(device_metrics, 'battery_level', 0))
 
-            self.metrics.voltage_gauge.labels(
-                **client_details.to_dict()
-            ).set(getattr(device_metrics, 'voltage', 0))
-
-            self.metrics.channel_utilization_gauge.labels(
-                **client_details.to_dict()
-            ).set(getattr(device_metrics, 'channel_utilization', 0))
-
-            self.metrics.air_util_tx_gauge.labels(
-                **client_details.to_dict()
-            ).set(getattr(device_metrics, 'air_util_tx', 0))
-
-            self.metrics.uptime_seconds_counter.labels(
-                **client_details.to_dict()
-            ).inc(getattr(device_metrics, 'uptime_seconds', 0))
+            # Store device metrics in TimescaleDB
+            self.db_handler.store_device_metrics(client_details.node_id, {
+                'battery_level': getattr(device_metrics, 'battery_level', 0),
+                'voltage': getattr(device_metrics, 'voltage', 0),
+                'channel_utilization': getattr(device_metrics, 'channel_utilization', 0),
+                'air_util_tx': getattr(device_metrics, 'air_util_tx', 0),
+                'uptime_seconds': getattr(device_metrics, 'uptime_seconds', 0)
+            })
 
         if telemetry.HasField('environment_metrics'):
-            NodeConfigurationMetrics().process_environment_update(client_details.node_id)
+            # Node configuration update is now handled by the database timestamps
             environment_metrics: EnvironmentMetrics = telemetry.environment_metrics
-            self.metrics.temperature_gauge.labels(
-                **client_details.to_dict()
-            ).set(getattr(environment_metrics, 'temperature', 0))
 
-            self.metrics.relative_humidity_gauge.labels(
-                **client_details.to_dict()
-            ).set(getattr(environment_metrics, 'relative_humidity', 0))
-
-            self.metrics.barometric_pressure_gauge.labels(
-                **client_details.to_dict()
-            ).set(getattr(environment_metrics, 'barometric_pressure', 0))
-
-            self.metrics.gas_resistance_gauge.labels(
-                **client_details.to_dict()
-            ).set(getattr(environment_metrics, 'gas_resistance', 0))
-
-            self.metrics.iaq_gauge.labels(
-                **client_details.to_dict()
-            ).set(getattr(environment_metrics, 'iaq', 0))
-
-            self.metrics.distance_gauge.labels(
-                **client_details.to_dict()
-            ).set(getattr(environment_metrics, 'distance', 0))
-
-            self.metrics.lux_gauge.labels(
-                **client_details.to_dict()
-            ).set(getattr(environment_metrics, 'lux', 0))
-
-            self.metrics.white_lux_gauge.labels(
-                **client_details.to_dict()
-            ).set(getattr(environment_metrics, 'white_lux', 0))
-
-            self.metrics.ir_lux_gauge.labels(
-                **client_details.to_dict()
-            ).set(getattr(environment_metrics, 'ir_lux', 0))
-
-            self.metrics.uv_lux_gauge.labels(
-                **client_details.to_dict()
-            ).set(getattr(environment_metrics, 'uv_lux', 0))
-
-            self.metrics.wind_direction_gauge.labels(
-                **client_details.to_dict()
-            ).set(getattr(environment_metrics, 'wind_direction', 0))
-
-            self.metrics.wind_speed_gauge.labels(
-                **client_details.to_dict()
-            ).set(getattr(environment_metrics, 'wind_speed', 0))
-
-            self.metrics.weight_gauge.labels(
-                **client_details.to_dict()
-            ).set(getattr(environment_metrics, 'weight', 0))
+            # Store environment metrics in TimescaleDB
+            self.db_handler.store_environment_metrics(client_details.node_id, {
+                'temperature': getattr(environment_metrics, 'temperature', 0),
+                'relative_humidity': getattr(environment_metrics, 'relative_humidity', 0),
+                'barometric_pressure': getattr(environment_metrics, 'barometric_pressure', 0),
+                'gas_resistance': getattr(environment_metrics, 'gas_resistance', 0),
+                'iaq': getattr(environment_metrics, 'iaq', 0),
+                'distance': getattr(environment_metrics, 'distance', 0),
+                'lux': getattr(environment_metrics, 'lux', 0),
+                'white_lux': getattr(environment_metrics, 'white_lux', 0),
+                'ir_lux': getattr(environment_metrics, 'ir_lux', 0),
+                'uv_lux': getattr(environment_metrics, 'uv_lux', 0),
+                'wind_direction': getattr(environment_metrics, 'wind_direction', 0),
+                'wind_speed': getattr(environment_metrics, 'wind_speed', 0),
+                'weight': getattr(environment_metrics, 'weight', 0)
+            })
 
         if telemetry.HasField('air_quality_metrics'):
-            NodeConfigurationMetrics().process_air_quality_update(client_details.node_id)
+            # Node configuration update is now handled by the database timestamps
             air_quality_metrics: AirQualityMetrics = telemetry.air_quality_metrics
-            self.metrics.pm10_standard_gauge.labels(
-                **client_details.to_dict()
-            ).set(getattr(air_quality_metrics, 'pm10_standard', 0))
 
-            self.metrics.pm25_standard_gauge.labels(
-                **client_details.to_dict()
-            ).set(getattr(air_quality_metrics, 'pm25_standard', 0))
-
-            self.metrics.pm100_standard_gauge.labels(
-                **client_details.to_dict()
-            ).set(getattr(air_quality_metrics, 'pm100_standard', 0))
-
-            self.metrics.pm10_environmental_gauge.labels(
-                **client_details.to_dict()
-            ).set(getattr(air_quality_metrics, 'pm10_environmental', 0))
-
-            self.metrics.pm25_environmental_gauge.labels(
-                **client_details.to_dict()
-            ).set(getattr(air_quality_metrics, 'pm25_environmental', 0))
-
-            self.metrics.pm100_environmental_gauge.labels(
-                **client_details.to_dict()
-            ).set(getattr(air_quality_metrics, 'pm100_environmental', 0))
-
-            self.metrics.particles_03um_gauge.labels(
-                **client_details.to_dict()
-            ).set(getattr(air_quality_metrics, 'particles_03um', 0))
-
-            self.metrics.particles_05um_gauge.labels(
-                **client_details.to_dict()
-            ).set(getattr(air_quality_metrics, 'particles_05um', 0))
-
-            self.metrics.particles_10um_gauge.labels(
-                **client_details.to_dict()
-            ).set(getattr(air_quality_metrics, 'particles_10um', 0))
-
-            self.metrics.particles_25um_gauge.labels(
-                **client_details.to_dict()
-            ).set(getattr(air_quality_metrics, 'particles_25um', 0))
-
-            self.metrics.particles_50um_gauge.labels(
-                **client_details.to_dict()
-            ).set(getattr(air_quality_metrics, 'particles_50um', 0))
-
-            self.metrics.particles_100um_gauge.labels(
-                **client_details.to_dict()
-            ).set(getattr(air_quality_metrics, 'particles_100um', 0))
+            # Store air quality metrics in TimescaleDB
+            self.db_handler.store_air_quality_metrics(client_details.node_id, {
+                'pm10_standard': getattr(air_quality_metrics, 'pm10_standard', 0),
+                'pm25_standard': getattr(air_quality_metrics, 'pm25_standard', 0),
+                'pm100_standard': getattr(air_quality_metrics, 'pm100_standard', 0),
+                'pm10_environmental': getattr(air_quality_metrics, 'pm10_environmental', 0),
+                'pm25_environmental': getattr(air_quality_metrics, 'pm25_environmental', 0),
+                'pm100_environmental': getattr(air_quality_metrics, 'pm100_environmental', 0),
+                'particles_03um': getattr(air_quality_metrics, 'particles_03um', 0),
+                'particles_05um': getattr(air_quality_metrics, 'particles_05um', 0),
+                'particles_10um': getattr(air_quality_metrics, 'particles_10um', 0),
+                'particles_25um': getattr(air_quality_metrics, 'particles_25um', 0),
+                'particles_50um': getattr(air_quality_metrics, 'particles_50um', 0),
+                'particles_100um': getattr(air_quality_metrics, 'particles_100um', 0)
+            })
 
         if telemetry.HasField('power_metrics'):
-            NodeConfigurationMetrics().process_power_update(client_details.node_id)
+            # Node configuration update is now handled by the database timestamps
             power_metrics: PowerMetrics = telemetry.power_metrics
-            self.metrics.ch1_voltage_gauge.labels(
-                **client_details.to_dict()
-            ).set(getattr(power_metrics, 'ch1_voltage', 0))
 
-            self.metrics.ch1_current_gauge.labels(
-                **client_details.to_dict()
-            ).set(getattr(power_metrics, 'ch1_current', 0))
-
-            self.metrics.ch2_voltage_gauge.labels(
-                **client_details.to_dict()
-            ).set(getattr(power_metrics, 'ch2_voltage', 0))
-
-            self.metrics.ch2_current_gauge.labels(
-                **client_details.to_dict()
-            ).set(getattr(power_metrics, 'ch2_current', 0))
-
-            self.metrics.ch3_voltage_gauge.labels(
-                **client_details.to_dict()
-            ).set(getattr(power_metrics, 'ch3_voltage', 0))
-
-            self.metrics.ch3_current_gauge.labels(
-                **client_details.to_dict()
-            ).set(getattr(power_metrics, 'ch3_current', 0))
+            # Store power metrics in TimescaleDB
+            self.db_handler.store_power_metrics(client_details.node_id, {
+                'ch1_voltage': getattr(power_metrics, 'ch1_voltage', 0),
+                'ch1_current': getattr(power_metrics, 'ch1_current', 0),
+                'ch2_voltage': getattr(power_metrics, 'ch2_voltage', 0),
+                'ch2_current': getattr(power_metrics, 'ch2_current', 0),
+                'ch3_voltage': getattr(power_metrics, 'ch3_voltage', 0),
+                'ch3_current': getattr(power_metrics, 'ch3_current', 0)
+            })
 
 
 @ProcessorRegistry.register_processor(PortNum.ZPS_APP)
@@ -501,18 +413,15 @@ class TraceRouteAppProcessor(Processor):
         except Exception as e:
             logger.error(f"Failed to parse TRACEROUTE_APP packet: {e}")
             return
-        if traceroute.route:
-            route = traceroute.route
-            self.metrics.route_discovery_gauge.labels(
-                **client_details.to_dict()
-            ).set(len(route))
+        # No need to store route discovery metrics in TimescaleDB
+        pass
 
 
 @ProcessorRegistry.register_processor(PortNum.NEIGHBORINFO_APP)
 class NeighborInfoAppProcessor(Processor):
     def process(self, payload: bytes, client_details: ClientDetails):
         logger.debug("Received NEIGHBORINFO_APP packet")
-        NodeConfigurationMetrics().process_neighbor_info_update(client_details.node_id)
+        # Node configuration update is now handled by the database timestamps
         neighbor_info = NeighborInfo()
         try:
             neighbor_info.ParseFromString(payload)
@@ -553,7 +462,7 @@ class NeighborInfoAppProcessor(Processor):
 
             conn.commit()
 
-        self.metrics.get_db().execute_db_operation(operation)
+        self.db_handler.execute_db_operation(operation)
 
 
 @ProcessorRegistry.register_processor(PortNum.ATAK_PLUGIN)
@@ -567,7 +476,7 @@ class AtakPluginProcessor(Processor):
 class MapReportAppProcessor(Processor):
     def process(self, payload: bytes, client_details: ClientDetails):
         logger.debug("Received MAP_REPORT_APP packet")
-        NodeConfigurationMetrics().map_broadcast_update(client_details.node_id)
+        # Node configuration update is now handled by the database timestamps
         map_report = MapReport()
         try:
             map_report.ParseFromString(payload)

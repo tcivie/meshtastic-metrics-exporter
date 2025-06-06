@@ -7,8 +7,6 @@ import sys
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
-from exporter.metric.node_configuration_metrics import NodeConfigurationMetrics
-
 try:
     from meshtastic.mesh_pb2 import MeshPacket, Data, HardwareModel
     from meshtastic.portnums_pb2 import PortNum
@@ -18,134 +16,19 @@ except ImportError:
     from meshtastic.protobuf.portnums_pb2 import PortNum
     from meshtastic.protobuf.mqtt_pb2 import ServiceEnvelope
 
-from prometheus_client import CollectorRegistry, Counter, Gauge
 from psycopg_pool import ConnectionPool
 
 from exporter.client_details import ClientDetails
+from exporter.db_handler import DBHandler
 from exporter.processor.processors import ProcessorRegistry
 
 
 class MessageProcessor:
-    def __init__(self, registry: CollectorRegistry, db_pool: ConnectionPool):
-        self.message_size_in_bytes = None
-        self.rx_rssi_gauge = None
-        self.channel_counter = None
-        self.packet_id_counter = None
-        self.hop_start_gauge = None
-        self.via_mqtt_counter = None
-        self.want_ack_counter = None
-        self.hop_limit_gauge = None
-        self.rx_snr_gauge = None
-        self.rx_time_histogram = None
-        self.total_packets_counter = None
-        self.destination_message_type_counter = None
-        self.source_message_type_counter = None
-        self.registry = registry
+    def __init__(self, db_pool: ConnectionPool):
         self.db_pool = db_pool
-        self.init_metrics()
+        self.db_handler = DBHandler(db_pool)
         self.processor_registry = ProcessorRegistry()
 
-    def init_metrics(self):
-        common_labels = [
-            'source_id', 'source_short_name', 'source_long_name', 'source_hardware_model', 'source_role',
-            'destination_id', 'destination_short_name', 'destination_long_name', 'destination_hardware_model',
-            'destination_role'
-        ]
-
-        reduced_labels = [
-            'source_id', 'destination_id'
-        ]
-
-        self.message_size_in_bytes = Gauge(
-            'text_message_app_size_in_bytes',
-            'Size of text messages processed by the app in Bytes',
-            reduced_labels + ['portnum'],
-            registry=self.registry
-        )
-
-        self.source_message_type_counter = Counter(
-            'mesh_packet_source_types',
-            'Types of mesh packets processed by source',
-            common_labels + ['portnum'],
-            registry=self.registry
-        )
-        # Destination-related counters
-        self.destination_message_type_counter = Counter(
-            'mesh_packet_destination_types',
-            'Types of mesh packets processed by destination',
-            common_labels + ['portnum'],
-            registry=self.registry
-        )
-        # Counters for the total number of packets
-        self.total_packets_counter = Counter(
-            'mesh_packet_total',
-            'Total number of mesh packets processed',
-            common_labels,
-            registry=self.registry
-        )
-        # Histogram for the rx_time (time in seconds)
-        self.rx_time_histogram = Gauge(
-            'mesh_packet_rx_time',
-            'Receive time of mesh packets (seconds since 1970)',
-            common_labels,
-            registry=self.registry
-        )
-        # Gauge for the rx_snr (signal-to-noise ratio)
-        self.rx_snr_gauge = Gauge(
-            'mesh_packet_rx_snr',
-            'Receive SNR of mesh packets',
-            common_labels,
-            registry=self.registry
-        )
-        # Counter for hop_limit
-        self.hop_limit_gauge = Gauge(
-            'mesh_packet_hop_limit',
-            'Hop limit of mesh packets',
-            common_labels,
-            registry=self.registry
-        )
-        # Counter for want_ack (occurrences of want_ack set to true)
-        self.want_ack_counter = Counter(
-            'mesh_packet_want_ack',
-            'Occurrences of want ACK for mesh packets',
-            common_labels,
-            registry=self.registry
-        )
-        # Counter for via_mqtt (occurrences of via_mqtt set to true)
-        self.via_mqtt_counter = Counter(
-            'mesh_packet_via_mqtt',
-            'Occurrences of mesh packets sent via MQTT',
-            common_labels,
-            registry=self.registry
-        )
-        # Gauge for hop_start
-        self.hop_start_gauge = Gauge(
-            'mesh_packet_hop_start',
-            'Hop start of mesh packets',
-            common_labels,
-            registry=self.registry
-        )
-        # Counter for unique packet IDs
-        self.packet_id_counter = Counter(
-            'mesh_packet_ids',
-            'Unique IDs for mesh packets',
-            common_labels + ['packet_id'],
-            registry=self.registry
-        )
-        # Counter for the channel used
-        self.channel_counter = Counter(
-            'mesh_packet_channel',
-            'Channel used for mesh packets',
-            common_labels + ['channel'],
-            registry=self.registry
-        )
-        # Gauge for the rx_rssi (received signal strength indicator)
-        self.rx_rssi_gauge = Gauge(
-            'mesh_packet_rx_rssi',
-            'Receive RSSI of mesh packets',
-            common_labels,
-            registry=self.registry
-        )
 
     @staticmethod
     def process_json_mqtt(message):
@@ -154,12 +37,7 @@ class MessageProcessor:
         if 'sender' in json_packet:
             if json_packet['sender'][0] == '!':
                 gateway_node_id = str(int(json_packet['sender'][1:], 16))
-                NodeConfigurationMetrics().process_mqtt_update(
-                    node_id=gateway_node_id,
-                    mqtt_json_enabled=True,
-                    mqtt_encryption_enabled=json_packet.get('encrypted', False),
-                    mqtt_configured_root_topic=topic
-                )
+                # Node configuration update is now handled by the database timestamps
 
     @staticmethod
     def process_mqtt(topic: str, service_envelope: ServiceEnvelope, mesh_packet: MeshPacket):
@@ -169,12 +47,7 @@ class MessageProcessor:
         if getattr(service_envelope, 'gateway_id'):
             if service_envelope.gateway_id[0] == '!':
                 gateway_node_id = str(int(service_envelope.gateway_id[1:], 16))
-                NodeConfigurationMetrics().process_mqtt_update(
-                    node_id=gateway_node_id,
-                    mqtt_json_enabled=False,
-                    mqtt_encryption_enabled=is_encrypted,
-                    mqtt_configured_root_topic=topic
-                )
+                # Node configuration update is now handled by the database timestamps
 
     def process(self, mesh_packet: MeshPacket):
         try:
@@ -216,7 +89,7 @@ class MessageProcessor:
 
             self.process_simple_packet_details(destination_client_details, mesh_packet, port_num, source_client_details)
 
-            processor = ProcessorRegistry.get_processor(port_num)(self.registry, self.db_pool)
+            processor = ProcessorRegistry.get_processor(port_num)(self.db_pool)
             processor.process(payload, client_details=source_client_details)
         except Exception as e:
             logging.warning(f"Failed to process message: {e}")
@@ -232,88 +105,38 @@ class MessageProcessor:
 
     def process_simple_packet_details(self, destination_client_details, mesh_packet: MeshPacket, port_num,
                                       source_client_details):
-        common_labels = {
-            'source_id': source_client_details.node_id,
-            'source_short_name': source_client_details.short_name,
-            'source_long_name': source_client_details.long_name,
-            'source_hardware_model': source_client_details.hardware_model,
-            'source_role': source_client_details.role,
-            'destination_id': destination_client_details.node_id,
-            'destination_short_name': destination_client_details.short_name,
-            'destination_long_name': destination_client_details.long_name,
-            'destination_hardware_model': destination_client_details.hardware_model,
-            'destination_role': destination_client_details.role,
-        }
-
-        reduced_labels = {
-            'source_id': source_client_details.node_id,
-            'destination_id': destination_client_details.node_id
-        }
-
-        self.message_size_in_bytes.labels(
-            **reduced_labels,
-            portnum=self.get_port_name_from_portnum(port_num)
-        ).set(sys.getsizeof(mesh_packet))
-
-        self.source_message_type_counter.labels(
-            **common_labels,
-            portnum=self.get_port_name_from_portnum(port_num)
-        ).inc()
-
-        self.destination_message_type_counter.labels(
-            **common_labels,
-            portnum=self.get_port_name_from_portnum(port_num)
-        ).inc()
-
-        self.total_packets_counter.labels(
-            **common_labels
-        ).inc()
-
-        self.rx_time_histogram.labels(
-            **common_labels
-        ).set(mesh_packet.rx_time)
-
-        self.rx_snr_gauge.labels(
-            **common_labels
-        ).set(mesh_packet.rx_snr)
-
-        self.hop_limit_gauge.labels(
-            **common_labels
-        ).set(mesh_packet.hop_limit)
-
-        if mesh_packet.want_ack:
-            self.want_ack_counter.labels(
-                **common_labels
-            ).inc()
-
-        if mesh_packet.via_mqtt:
-            self.via_mqtt_counter.labels(
-                **common_labels
-            ).inc()
-
-        self.hop_start_gauge.labels(
-            **common_labels
-        ).set(mesh_packet.hop_start)
-
-        self.packet_id_counter.labels(
-            **common_labels,
-            packet_id=mesh_packet.id
-        ).inc()
-
-        # Increment the channel counter
-        self.channel_counter.labels(
-            **common_labels,
-            channel=mesh_packet.channel
-        ).inc()
-
-        # Set the rx_rssi in the gauge
-        self.rx_rssi_gauge.labels(
-            **common_labels
-        ).set(mesh_packet.rx_rssi)
+        # Store mesh packet metrics in TimescaleDB
+        self.db_handler.store_mesh_packet_metrics(
+            source_client_details.node_id,
+            destination_client_details.node_id,
+            {
+                'portnum': self.get_port_name_from_portnum(port_num),
+                'packet_id': mesh_packet.id,
+                'channel': mesh_packet.channel,
+                'rx_time': mesh_packet.rx_time,
+                'rx_snr': mesh_packet.rx_snr,
+                'rx_rssi': mesh_packet.rx_rssi,
+                'hop_limit': mesh_packet.hop_limit,
+                'hop_start': mesh_packet.hop_start,
+                'want_ack': mesh_packet.want_ack,
+                'via_mqtt': mesh_packet.via_mqtt,
+                'message_size_bytes': sys.getsizeof(mesh_packet)
+            }
+        )
 
     def _get_client_details(self, node_id: int) -> ClientDetails:
         if node_id == 4294967295 or node_id == 1:  # FFFFFFFF or 1 (Broadcast)
-            return ClientDetails(node_id=node_id, short_name='Broadcast', long_name='Broadcast')
+            node_id_str = str(node_id)
+            # Insert the broadcast node into node_details if it doesn't exist
+            with self.db_pool.connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                                INSERT INTO node_details (node_id, short_name, long_name, hardware_model, role)
+                                VALUES (%s, %s, %s, %s, %s)
+                                ON CONFLICT (node_id) DO NOTHING
+                                """, (node_id_str, 'Broadcast', 'Broadcast', 'BROADCAST', 'BROADCAST'))
+                    conn.commit()
+            return ClientDetails(node_id=node_id_str, short_name='Broadcast', long_name='Broadcast')
         node_id_str = str(node_id)  # Convert the integer to a string
         with self.db_pool.connection() as conn:
             with conn.cursor() as cur:

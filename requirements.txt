@@ -1,6 +1,5 @@
 paho-mqtt>=2.1.0
 python-dotenv>=1.0.1
-prometheus_client>=0.21.1
 unishox2-py3~=1.0.0
 cryptography>=44.0.2
 psycopg>=3.2.6

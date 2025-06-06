@@ -7,8 +7,6 @@ import paho.mqtt.client as mqtt
 from dotenv import load_dotenv
 
 from constants import callback_api_version_map, protocol_map
-from exporter.metric.node_configuration_metrics import NodeConfigurationMetrics
-from exporter.metric_cleanup_job import MetricTrackingRegistry
 
 try:
     from meshtastic.mesh_pb2 import MeshPacket
@@ -17,18 +15,9 @@ except ImportError:
     from meshtastic.protobuf.mesh_pb2 import MeshPacket
     from meshtastic.protobuf.mqtt_pb2 import ServiceEnvelope
 
-from prometheus_client import start_http_server
 from psycopg_pool import ConnectionPool
 
 connection_pool = None
-
-
-def get_connection():
-    return connection_pool.getconn()
-
-
-def release_connection(conn):
-    connection_pool.putconn(conn)
 
 
 def handle_connect(client, userdata, flags, reason_code, properties):
@@ -125,12 +114,9 @@ if __name__ == "__main__":
         os.getenv('DATABASE_URL'),
         max_size=100
     )
-    # Configure node configuration metrics
-    node_conf_metrics = NodeConfigurationMetrics(connection_pool)
+    # Node configuration is now handled by the database timestamps
 
-    # Configure Prometheus exporter
-    registry = MetricTrackingRegistry()
-    start_http_server(int(os.getenv('PROMETHEUS_COLLECTOR_PORT', 9464)), registry=registry)
+    # No need for Prometheus exporter anymore
 
     # Create an MQTT client
     mqtt_protocol = os.getenv('MQTT_PROTOCOL', 'MQTTv5')
@@ -159,7 +145,7 @@ if __name__ == "__main__":
         logging.error(f"Failed to connect to MQTT broker: {e}")
         exit(1)
 
-    # Configure the Processor and the Exporter
-    processor = MessageProcessor(registry, connection_pool)
+    # Configure the Processor
+    processor = MessageProcessor(connection_pool)
 
     mqtt_client.loop_forever()

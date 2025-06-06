@@ -1,22 +1,8 @@
 volumes:
-  prometheus_data:
   grafana_data:
-  postgres_data:
+  timescaledb_data:
 
 services:
-  prometheus:
-    image: prom/prometheus:v2.55.1
-    restart: unless-stopped
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    ports:
-      - "9090:9090"
-    networks:
-      - mesh-bridge
-    volumes:
-      - prometheus_data:/prometheus
-      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-
   grafana:
     build:
       context: .
@@ -29,6 +15,8 @@ services:
     volumes:
       - grafana_data:/var/lib/grafana
       - ./docker/grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - timescaledb
 
   exporter:
     build:
@@ -36,8 +24,7 @@ services:
       dockerfile: ./docker/exporter/Dockerfile.exporter
     restart: unless-stopped
     depends_on:
-      - prometheus
-      - postgres
+      - timescaledb
     extra_hosts:
       - "host.docker.internal:host-gateway"
     env_file:
@@ -45,14 +32,16 @@ services:
     networks:
       - mesh-bridge
 
-  postgres:
-    image: postgres:16
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
     restart: unless-stopped
     networks:
       - mesh-bridge
+    ports:
+      - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - timescaledb_data:/var/lib/postgresql/data
+      - ./docker/timescaledb/init.sql:/docker-entrypoint-initdb.d/init.sql
     environment:
       POSTGRES_USER: "postgres"
       POSTGRES_PASSWORD: "postgres"
@@ -61,3 +50,7 @@ services:
 networks:
   mesh-bridge:
     driver: bridge
+    enable_ipv6: true
+    ipam:
+      config:
+        - subnet: 2001:db8::/64

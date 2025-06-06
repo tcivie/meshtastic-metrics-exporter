@@ -1,22 +1,14 @@
 apiVersion: 1
 datasources:
-  - name: prometheus
-    type: prometheus
-    access: proxy
-    url: http://prometheus:9090
-    isDefault: true
-    editable: true
-    jsonData:
-      httpMethod: POST
-  - name: postgres
+  - name: timescaledb
     type: postgres
     access: proxy
-    url: postgres:5432
+    url: timescaledb:5432
     jsonData:
       database: meshtastic
       sslmode: "disable"
     user: postgres
     secureJsonData:
       password: postgres
-    isDefault: false
+    isDefault: true
     editable: true
