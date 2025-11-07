@@ -53,7 +53,7 @@ jobs:
 
     - name: Check exposed ports
       run: |
-        expected_ports=("9090" "3000")
+        expected_ports=("5432" "3000")
         for port in "${expected_ports[@]}"
         do
           if ! netstat -tuln | grep -q ":$port "; then
