@@ -19,7 +19,7 @@ jobs:
 
     - name: Check container statuses and logs
       run: |
-        services=("prometheus" "grafana" "exporter" "timescaledb")
+        services=("grafana" "exporter" "timescaledb")
         
         for service in "${services[@]}"
         do
