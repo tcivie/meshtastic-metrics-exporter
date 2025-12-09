@@ -25,7 +25,7 @@ You can explore these public instances to see the exporter in action:
 
 For affordable and reliable hosting, I personally use [Hetzner Cloud](https://hetzner.cloud/?ref=iMFSvXv8FFMJ) for running this project. Their VPS offerings provide excellent performance for TimescaleDB and Grafana workloads at competitive prices.
 
-*Note: This is a referral link - using it supports the project at no extra cost to you.*
+*Note: This is a referral link - using it supports the project at no extra cost to you. Plus you should get free 20$ for use*
 
 ### Database Structure
 
