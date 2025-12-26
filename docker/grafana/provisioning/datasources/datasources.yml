@@ -2,6 +2,7 @@ apiVersion: 1
 datasources:
   - name: timescaledb
     type: postgres
+    uid: P6FFE9BCE28CDFF26
     access: proxy
     url: timescaledb:5432
     jsonData:
