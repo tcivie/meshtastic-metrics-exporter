@@ -625,7 +625,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
+            "uid": "PA942B37CCFAF5A81"
           },
           "disableTextWrap": false,
           "editorMode": "builder",
@@ -644,7 +644,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
+        "uid": "PA942B37CCFAF5A81"
       },
       "description": "Shows the total data sent on the mesh in bytes in the last hour. This includes all types of packets.",
       "fieldConfig": {
@@ -695,7 +695,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
+            "uid": "PA942B37CCFAF5A81"
           },
           "disableTextWrap": false,
           "editorMode": "builder",
@@ -742,7 +742,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
+        "uid": "PA942B37CCFAF5A81"
       },
       "description": "Shows the max recorded chanel utilization and the average",
       "fieldConfig": {
@@ -840,7 +840,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
+            "uid": "PA942B37CCFAF5A81"
           },
           "disableTextWrap": false,
           "editorMode": "builder",
@@ -861,7 +861,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
+        "uid": "PA942B37CCFAF5A81"
       },
       "description": "This panel shows the percentage of airtime used for transmissions in the last hour. Airtime in LoRa networks represents the duration a device occupies the radio frequency channel to send data. It's a critical metric for:\n\nNetwork capacity: Higher airtime usage indicates increased network load.\n\nRegulatory compliance: Many regions limit the total airtime per device.\n\nBattery life: More airtime generally means higher power consumption.\n\nThe data comes from Meshtastic packets, reflecting actual network usage. High percentages may suggest the need for optimization or capacity planning.",
       "fieldConfig": {
@@ -954,7 +954,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
+            "uid": "PA942B37CCFAF5A81"
           },
           "disableTextWrap": false,
           "editorMode": "code",
@@ -976,7 +976,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
+        "uid": "PA942B37CCFAF5A81"
       },
       "description": "Displays the nodes that utilize most of the channel (On average with at least 1 update every hour)",
       "fieldConfig": {
@@ -1067,7 +1067,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
+            "uid": "PA942B37CCFAF5A81"
           },
           "disableTextWrap": false,
           "editorMode": "code",
@@ -1145,7 +1145,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
+            "uid": "PA942B37CCFAF5A81"
           },
           "disableTextWrap": false,
           "editorMode": "builder",
@@ -1164,7 +1164,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
+        "uid": "PA942B37CCFAF5A81"
       },
       "description": "How many hops are configured for each client",
       "fieldConfig": {
@@ -1232,7 +1232,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
+            "uid": "PA942B37CCFAF5A81"
           },
           "disableTextWrap": false,
           "editorMode": "code",

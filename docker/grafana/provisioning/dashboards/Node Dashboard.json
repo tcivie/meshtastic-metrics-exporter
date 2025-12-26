@@ -80,7 +80,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
+            "uid": "PA942B37CCFAF5A81"
           },
           "disableTextWrap": false,
           "editorMode": "builder",
@@ -151,7 +151,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
+            "uid": "PA942B37CCFAF5A81"
           },
           "disableTextWrap": false,
           "editorMode": "builder",
@@ -170,7 +170,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
+        "uid": "PA942B37CCFAF5A81"
       },
       "description": "The last time a packet was observed being sent from this node",
       "fieldConfig": {
@@ -222,7 +222,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
+            "uid": "PA942B37CCFAF5A81"
           },
           "editorMode": "code",
           "expr": "timestamp((\n  count(mesh_packet_total{source_id=\"$nodeID\"}) by (source_id)\n  -\n  count(mesh_packet_total{source_id=\"$nodeID\"} offset 1m) by (source_id)\n) > 0)",
@@ -294,7 +294,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
+            "uid": "PA942B37CCFAF5A81"
           },
           "disableTextWrap": false,
           "editorMode": "builder",
@@ -365,7 +365,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
+            "uid": "PA942B37CCFAF5A81"
           },
           "disableTextWrap": false,
           "editorMode": "builder",
@@ -384,7 +384,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
+        "uid": "PA942B37CCFAF5A81"
       },
       "description": "The last time a packet was observed with this node as its destination",
       "fieldConfig": {
@@ -436,7 +436,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
+            "uid": "PA942B37CCFAF5A81"
           },
           "editorMode": "code",
           "expr": "timestamp((\n  count(mesh_packet_total{destination_id=\"$nodeID\"}) by (destination_id)\n  -\n  count(mesh_packet_total{destination_id=\"$nodeID\"} offset 1m) by (destination_id)\n) > 0)",
@@ -828,7 +828,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
+        "uid": "PA942B37CCFAF5A81"
       },
       "fieldConfig": {
         "defaults": {
@@ -886,7 +886,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
+            "uid": "PA942B37CCFAF5A81"
           },
           "disableTextWrap": false,
           "editorMode": "builder",
@@ -1087,7 +1087,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
+        "uid": "PA942B37CCFAF5A81"
       },
       "fieldConfig": {
         "defaults": {
@@ -1145,7 +1145,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
+            "uid": "PA942B37CCFAF5A81"
           },
           "disableTextWrap": false,
           "editorMode": "builder",
@@ -1364,7 +1364,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
+        "uid": "PA942B37CCFAF5A81"
       },
       "fieldConfig": {
         "defaults": {
@@ -1421,7 +1421,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
+            "uid": "PA942B37CCFAF5A81"
           },
           "disableTextWrap": false,
           "editorMode": "builder",
@@ -1459,7 +1459,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
+        "uid": "PA942B37CCFAF5A81"
       },
       "fieldConfig": {
         "defaults": {
@@ -1545,7 +1545,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
+            "uid": "PA942B37CCFAF5A81"
           },
           "disableTextWrap": false,
           "editorMode": "builder",
@@ -1567,7 +1567,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
+        "uid": "PA942B37CCFAF5A81"
       },
       "fieldConfig": {
         "defaults": {
@@ -1643,7 +1643,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
+            "uid": "PA942B37CCFAF5A81"
           },
           "disableTextWrap": false,
           "editorMode": "builder",
@@ -1663,7 +1663,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
+        "uid": "PA942B37CCFAF5A81"
       },
       "description": "Displays the measured current from the channels (1,2,3)",
       "fieldConfig": {
@@ -1743,7 +1743,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
+            "uid": "PA942B37CCFAF5A81"
           },
           "disableTextWrap": false,
           "editorMode": "builder",
@@ -1759,7 +1759,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
+            "uid": "PA942B37CCFAF5A81"
           },
           "disableTextWrap": false,
           "editorMode": "builder",
@@ -1776,7 +1776,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
+            "uid": "PA942B37CCFAF5A81"
           },
           "disableTextWrap": false,
           "editorMode": "builder",
@@ -1797,7 +1797,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
+        "uid": "PA942B37CCFAF5A81"
       },
       "description": "Measures the volage on channels (1,2,3)",
       "fieldConfig": {
@@ -1877,7 +1877,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
+            "uid": "PA942B37CCFAF5A81"
           },
           "disableTextWrap": false,
           "editorMode": "builder",
@@ -1893,7 +1893,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
+            "uid": "PA942B37CCFAF5A81"
           },
           "disableTextWrap": false,
           "editorMode": "builder",
@@ -1910,7 +1910,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
+            "uid": "PA942B37CCFAF5A81"
           },
           "disableTextWrap": false,
           "editorMode": "builder",
