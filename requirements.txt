@@ -11,5 +11,5 @@ APScheduler>=3.11.0
 humanfriendly>=10.0
 
 # Meshtastic Protocol Buffers
-meshtastic-protobufs-protocolbuffers-python==33.0.0.1.20240616122800+932dcc6e848b
+meshtastic-protobufs-protocolbuffers-python==33.5.0.1.20260221073656+52076ffcde16
 --extra-index-url https://buf.build/gen/python
