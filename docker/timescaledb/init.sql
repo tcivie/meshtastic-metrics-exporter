@@ -349,21 +349,29 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Create a scheduled job to calculate update intervals every hour
--- Note: This requires the pg_cron extension, which may not be available in all PostgreSQL installations
--- If pg_cron is not available, you can manually run the calculate_update_intervals() function periodically
-DO
-$$
-    BEGIN
-        IF EXISTS (SELECT 1
-                   FROM pg_available_extensions
-                   WHERE name = 'pg_cron') THEN
-            EXECUTE 'CREATE EXTENSION IF NOT EXISTS pg_cron';
-            EXECUTE 'SELECT cron.schedule(''0 * * * *'', ''SELECT calculate_update_intervals()'')';
-        ELSE
-            RAISE NOTICE 'pg_cron extension is not available. You will need to run the calculate_update_intervals() function manually or set up an external scheduler.';
-        END IF;
-    END
+-- Schedule calculate_update_intervals() using TimescaleDB background jobs.
+-- This project already depends on TimescaleDB (hypertables/retention), so we can rely on add_job.
+CREATE OR REPLACE PROCEDURE calculate_update_intervals_job(job_id int, config jsonb)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  PERFORM calculate_update_intervals();
+END;
+$$;
+
+DO $$
+BEGIN
+  -- Use a stable job name to avoid duplicates on re-init.
+  PERFORM add_job(
+    proc => 'calculate_update_intervals_job',
+    schedule_interval => INTERVAL '1 hour',
+    job_name => 'calculate_update_intervals_hourly'
+  );
+EXCEPTION
+  WHEN OTHERS THEN
+    -- add_job may error if the job already exists; treat as benign on repeated init.
+    RAISE NOTICE 'calculate_update_intervals job already scheduled (or could not be scheduled): %', SQLERRM;
+END
 $$;
 
 -- Create triggers to update node_configurations when metrics are inserted
