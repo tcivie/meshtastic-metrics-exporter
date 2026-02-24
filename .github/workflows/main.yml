@@ -16,43 +16,41 @@ jobs:
     - name: Start Docker Compose
       run: docker compose up -d --wait --wait-timeout 120
 
+    - name: Wait for containers to stabilize
+      run: sleep 60
+
     - name: Check container statuses and logs
       run: |
         services=("grafana" "exporter" "timescaledb")
-        
+
         for service in "${services[@]}"
         do
           container_id=$(docker compose ps -q $service)
-          
+
           if [ -z "$container_id" ]; then
             echo "Error: Container for $service not found"
             docker compose logs $service
             exit 1
           fi
-          
+
           status=$(docker inspect --format='{{.State.Status}}' $container_id)
           restarts=$(docker inspect --format='{{.RestartCount}}' $container_id)
-          
+
           if [ "$status" != "running" ]; then
             echo "Error: Container $service ($container_id) is not running. Current status: $status"
             echo "Last logs for $service:"
             docker compose logs --tail=50 $service
             exit 1
           fi
-          
-          max_restarts=3
-          if [ "$restarts" -gt "$max_restarts" ]; then
-            echo "Error: Container $service ($container_id) has restarted $restarts times (max: $max_restarts)"
+
+          if [ "$restarts" -gt 0 ]; then
+            echo "Error: Container $service ($container_id) has restarted $restarts times"
             echo "Last logs for $service:"
             docker compose logs --tail=50 $service
             exit 1
           fi
 
-          if [ "$restarts" -gt 0 ]; then
-            echo "Warning: Container $service restarted $restarts time(s) but is now stable."
-          else
-            echo "Container $service is running properly and has not restarted."
-          fi
+          echo "Container $service is running properly and has not restarted."
         done
 
     - name: Check exposed ports
