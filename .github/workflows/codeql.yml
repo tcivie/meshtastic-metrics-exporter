@@ -14,12 +14,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       security-events: write
-    strategy:
-      matrix:
-        language: [python, actions]
     steps:
       - uses: actions/checkout@v4
       - uses: github/codeql-action/init@v3
         with:
-          languages: ${{ matrix.language }}
+          languages: python, actions
       - uses: github/codeql-action/analyze@v3
