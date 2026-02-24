@@ -11,7 +11,7 @@ jobs:
       contents: read
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: Start Docker Compose
       run: docker compose up -d --wait --wait-timeout 120
