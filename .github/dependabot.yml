@@ -1,43 +1,42 @@
-# .github/dependabot.yml
-  version: 2
+version: 2
 
-  registries:
-    buf-build:
-      type: python-index
-      url: https://buf.build/gen/python
-      replaces-base: false
+registries:
+  buf-build:
+    type: python-index
+    url: https://buf.build/gen/python
+    replaces-base: false
 
-  updates:
-    # Python dependencies
-    - package-ecosystem: "pip"
-      directory: "/"
-      registries:
-        - buf-build
-      schedule:
-        interval: "weekly"
-      groups:
-        python-deps:
-          patterns:
-            - "*"
-          exclude-patterns:
-            - "meshtastic-*"
-        meshtastic-protos:
-          patterns:
-            - "meshtastic-*"
+updates:
+  # Python dependencies
+  - package-ecosystem: "pip"
+    directory: "/"
+    registries:
+      - buf-build
+    schedule:
+      interval: "weekly"
+    groups:
+      python-deps:
+        patterns:
+          - "*"
+        exclude-patterns:
+          - "meshtastic-*"
+      meshtastic-protos:
+        patterns:
+          - "meshtastic-*"
 
-    # Docker base images
-    - package-ecosystem: "docker"
-      directory: "/docker/exporter"
-      schedule:
-        interval: "weekly"
+  # Docker base images
+  - package-ecosystem: "docker"
+    directory: "/docker/exporter"
+    schedule:
+      interval: "weekly"
 
-    - package-ecosystem: "docker"
-      directory: "/docker/grafana"
-      schedule:
-        interval: "weekly"
+  - package-ecosystem: "docker"
+    directory: "/docker/grafana"
+    schedule:
+      interval: "weekly"
 
-    # GitHub Actions
-    - package-ecosystem: "github-actions"
-      directory: "/"
-      schedule:
-        interval: "weekly"
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
