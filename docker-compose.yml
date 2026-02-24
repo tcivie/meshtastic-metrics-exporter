@@ -24,7 +24,8 @@ services:
       dockerfile: ./docker/exporter/Dockerfile.exporter
     restart: unless-stopped
     depends_on:
-      - timescaledb
+      timescaledb:
+        condition: service_healthy
     extra_hosts:
       - "host.docker.internal:host-gateway"
     env_file:
@@ -46,6 +47,11 @@ services:
       POSTGRES_USER: "postgres"
       POSTGRES_PASSWORD: "postgres"
       POSTGRES_DB: "meshtastic"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d meshtastic"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
 networks:
   mesh-bridge:
