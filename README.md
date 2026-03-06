@@ -3,13 +3,6 @@
 
 The `meshtastic-metrics-exporter` is a tool designed to collect and store comprehensive data from Meshtastic MQTT servers into TimescaleDB, with pre-configured Grafana dashboards for visualization and analysis.
 
-## Public Dashboards
-
-You can explore these public instances to see the exporter in action:
-
-- **Canadaverse Dashboard**: [dash.mt.gt](https://dash.mt.gt) (Guest access: username: `guest`, password: `guest`)
-  > This instance demonstrates the metrics exporter's capabilities in a production environment, maintained by [@tb0hdan](https://github.com/tb0hdan).
-
 ## Features
 
 - Ingests nearly all packet types from Meshtastic MQTT servers
@@ -18,6 +11,27 @@ You can explore these public instances to see the exporter in action:
 - Comes with pre-configured Grafana dashboards for immediate visualization
 - Automatic data retention policies and continuous aggregations
 - Configuration via `.env` file
+
+## Community Showcases
+
+Running this exporter for your local mesh community? We'd love to hear about it.
+
+If you have a public dashboard or an interesting deployment, open a [discussion](https://github.com/tcivie/meshtastic-metrics-exporter/discussions) or submit a PR to add your instance to the list below. Share what you're monitoring, how you've customized things, or what features you wish existed — it all helps shape where this project goes next.
+
+### Live Instances
+
+| Community | Dashboard | Maintainer | Notes |
+|-----------|-----------|------------|-------|
+| Canadaverse | [dash.mt.gt](https://dash.mt.gt) (guest/guest) | [@tb0hdan](https://github.com/tb0hdan) | Production deployment |
+| *Your community here* | — | — | [Add yours →](https://github.com/tcivie/meshtastic-metrics-exporter/pulls) |
+
+### Feature Requests & Ideas
+
+Got ideas for new metrics, dashboards, or integrations? Open an [issue](https://github.com/tcivie/meshtastic-metrics-exporter/issues) tagged with `enhancement`. Seeing what different communities actually need is the best way to prioritize development.
+
+### Spread the Word
+
+If this project is useful to your mesh network, share it with other communities. The more diverse the deployments, the better the project gets for everyone.
 
 ## Deployment
 
