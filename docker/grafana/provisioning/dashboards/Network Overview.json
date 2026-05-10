@@ -1,0 +1,1221 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "description": "Landing dashboard. Health tiles + activity. Click any node_id to drill into a node.",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {
+      "asDropdown": true,
+      "icon": "external link",
+      "includeVars": false,
+      "keepTime": true,
+      "tags": [
+        "meshtastic"
+      ],
+      "targetBlank": false,
+      "title": "Mesh dashboards",
+      "tooltip": "Switch dashboard",
+      "type": "dashboards"
+    }
+  ],
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "Mesh health",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 1
+      },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Active nodes (30m)",
+      "description": "Distinct nodes that sent any packet in the last 30 minutes.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(DISTINCT source_id) AS value FROM mesh_packet_metrics WHERE time > NOW() - INTERVAL '30 minutes'",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "yellow",
+                "value": 20
+              },
+              {
+                "color": "green",
+                "value": 100
+              }
+            ]
+          },
+          "unit": "short",
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "links": [
+        {
+          "title": "Investigate traffic",
+          "url": "/d/mesh-investigation?${__url_time_range}",
+          "targetBlank": false
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Total nodes seen",
+      "description": "All nodes ever observed (excluding broadcast).",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 4,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(*) AS value FROM node_details WHERE node_id NOT IN ('4294967295','1','0')",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short",
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "links": [
+        {
+          "title": "Open network map",
+          "url": "/d/mesh-network-map?${__url_time_range}",
+          "targetBlank": false
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Packets / min (5m avg)",
+      "description": "Packets/min over the last 5 minutes (RED-method 'Rate').",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT (COUNT(*)::float / 5.0) AS value FROM mesh_packet_metrics WHERE time > NOW() - INTERVAL '5 minutes'",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "green",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "short",
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "links": [
+        {
+          "title": "Investigate traffic",
+          "url": "/d/mesh-investigation?${__url_time_range}",
+          "targetBlank": false
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Median ChUtil (1h)",
+      "description": "Median channel utilization over the last hour. >25% = congested.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY channel_utilization)::float AS value FROM device_metrics WHERE time > NOW() - INTERVAL '1 hour' AND channel_utilization > 0",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 15
+              },
+              {
+                "color": "red",
+                "value": 25
+              }
+            ]
+          },
+          "unit": "percent",
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Median SNR (1h)",
+      "description": "Median unicast SNR over the last hour. Excludes rx_snr=0 (firmware default / not measured). <-7 dB marginal, <-13 dB poor.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY rx_snr)::float AS value FROM mesh_packet_metrics WHERE time > NOW() - INTERVAL '1 hour'   AND rx_snr IS NOT NULL AND rx_snr <> 0   AND destination_id NOT IN ('4294967295','1','0')",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": -13
+              },
+              {
+                "color": "green",
+                "value": -7
+              }
+            ]
+          },
+          "unit": "none",
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "Named nodes",
+      "description": "Percent of nodes with a known long_name. Low = missing NodeInfo packets.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 20,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT (100.0 * COUNT(*) FILTER (WHERE long_name IS NOT NULL   AND long_name <> 'Unknown')) / NULLIF(COUNT(*), 0) AS value FROM node_details WHERE node_id NOT IN ('4294967295','1','0')",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 30
+              },
+              {
+                "color": "green",
+                "value": 70
+              }
+            ]
+          },
+          "unit": "percent",
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 8,
+      "type": "row",
+      "title": "Activity",
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 24,
+        "h": 1
+      },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Packets per minute",
+      "description": "Mesh-wide packet rate broken out by portnum.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 6,
+        "w": 12,
+        "h": 7
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT $__timeGroupAlias(time, $__interval),        portnum AS metric, COUNT(*)::float AS value FROM mesh_packet_metrics WHERE $__timeFilter(time) GROUP BY 1, portnum ORDER BY 1",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "showPoints": "never",
+            "spanNulls": true,
+            "axisGridShow": true,
+            "axisLabel": ""
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "piechart",
+      "title": "Packet types",
+      "description": "Distribution of packet types over the selected range.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 6,
+        "w": 6,
+        "h": 7
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT NOW() AS time, portnum AS metric, COUNT(*)::float AS value FROM mesh_packet_metrics WHERE $__timeFilter(time) GROUP BY portnum ORDER BY value DESC",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "displayLabels": [
+          "percent"
+        ],
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 30,
+      "type": "stat",
+      "title": "Data volume (range)",
+      "description": "Total bytes carried by mesh packets in the selected range (envelope size).",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 6,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(SUM(message_size_bytes),0)::float AS value FROM mesh_packet_metrics WHERE $__timeFilter(time)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "unit": "bytes",
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 31,
+      "type": "stat",
+      "title": "Max hop_start",
+      "description": "Highest hop_start TTL observed in the range. Higher means nodes set deeper relays.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 10,
+        "w": 6,
+        "h": 3
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT MAX(hop_start)::float AS value FROM mesh_packet_metrics WHERE $__timeFilter(time) AND hop_start > 0",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 4
+              },
+              {
+                "color": "red",
+                "value": 7
+              }
+            ]
+          },
+          "unit": "short",
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 11,
+      "type": "row",
+      "title": "Mesh quality",
+      "gridPos": {
+        "x": 0,
+        "y": 13,
+        "w": 24,
+        "h": 1
+      },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Top 10 channel utilizers",
+      "description": "Top 10 nodes by avg ChUtil. Click a series in the legend to drill into Node Detail.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 14,
+        "w": 16,
+        "h": 9
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "WITH top_nodes AS (  SELECT node_id, AVG(channel_utilization) AS util   FROM device_metrics   WHERE $__timeFilter(time) AND channel_utilization > 0   GROUP BY node_id ORDER BY util DESC LIMIT 10) SELECT $__timeGroupAlias(dm.time, $__interval),        dm.node_id AS metric,        AVG(dm.channel_utilization) AS value FROM device_metrics dm JOIN top_nodes tn ON tn.node_id = dm.node_id WHERE $__timeFilter(dm.time) GROUP BY 1, 2 ORDER BY 1",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "showPoints": "never",
+            "spanNulls": true,
+            "axisGridShow": true,
+            "axisLabel": ""
+          },
+          "unit": "percent",
+          "links": [
+            {
+              "title": "Open node ${__field.name}",
+              "url": "/d/mesh-node-detail?var-nodeID=${__field.name}&${__url_time_range}",
+              "targetBlank": false
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 32,
+      "type": "timeseries",
+      "title": "Mesh-wide ChUtil & AirUtilTX",
+      "description": "Average channel utilization and transmit duty cycle across all nodes.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 14,
+        "w": 8,
+        "h": 9
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT $__timeGroupAlias(time, $__interval),        AVG(channel_utilization) AS \"ChUtil\",        AVG(air_util_tx)         AS \"AirUtilTX\" FROM device_metrics WHERE $__timeFilter(time) GROUP BY 1 ORDER BY 1",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "showPoints": "never",
+            "spanNulls": true,
+            "axisGridShow": true,
+            "axisLabel": ""
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 14,
+      "type": "row",
+      "title": "Nodes",
+      "gridPos": {
+        "x": 0,
+        "y": 23,
+        "w": 24,
+        "h": 1
+      },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 15,
+      "type": "table",
+      "title": "Most active nodes (1h)",
+      "description": "Top 50 senders. Click any node_id to open the Node Detail dashboard.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 24,
+        "w": 24,
+        "h": 12
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT m.source_id AS node_id,        COALESCE(nd.long_name, nd.short_name, m.source_id) AS name,        nd.hardware_model AS hardware, nd.role AS role,        COUNT(*) AS packets, MAX(m.time) AS last_seen FROM mesh_packet_metrics m LEFT JOIN node_details nd ON nd.node_id = m.source_id WHERE m.time > NOW() - INTERVAL '1 hour' GROUP BY m.source_id, nd.long_name, nd.short_name, nd.hardware_model, nd.role ORDER BY packets DESC LIMIT 50",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": true,
+            "inspect": false
+          },
+          "mappings": []
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "node_id"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open node detail",
+                    "url": "/d/mesh-node-detail?var-nodeID=${__data.fields.node_id}&${__url_time_range}"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      }
+    },
+    {
+      "id": 19,
+      "type": "row",
+      "title": "Fleet composition",
+      "gridPos": {
+        "x": 0,
+        "y": 36,
+        "w": 24,
+        "h": 1
+      },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 16,
+      "type": "piechart",
+      "title": "Hardware models",
+      "description": "Distribution of hardware models reported via NodeInfo / MapReport.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 37,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT NOW() AS time,        COALESCE(NULLIF(hardware_model,''),'unknown') AS metric,        COUNT(*)::float AS value FROM node_details WHERE node_id NOT IN ('4294967295','1','0') GROUP BY 2 ORDER BY value DESC LIMIT 20",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "displayLabels": [
+          "percent"
+        ],
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 17,
+      "type": "piechart",
+      "title": "Node roles",
+      "description": "What each node does (CLIENT / ROUTER / REPEATER / ...).",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 37,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT NOW() AS time,        COALESCE(NULLIF(role,''),'unknown') AS metric,        COUNT(*)::float AS value FROM node_details WHERE node_id NOT IN ('4294967295','1','0') GROUP BY 2 ORDER BY value DESC",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "displayLabels": [
+          "percent"
+        ],
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 18,
+      "type": "piechart",
+      "title": "Modem preset",
+      "description": "Modem preset (LONG_FAST, LONG_SLOW, ...). Only nodes that have broadcast a MAP_REPORT_APP packet appear here \u2014 sparse on the public mesh.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 37,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT NOW() AS time,        CASE WHEN modem_preset IS NULL OR modem_preset IN ('UNSET','')             THEN 'unknown' ELSE modem_preset END AS metric,        COUNT(*)::float AS value FROM node_details WHERE node_id NOT IN ('4294967295','1','0') GROUP BY 2 ORDER BY value DESC",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "displayLabels": [
+          "percent"
+        ],
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      }
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": [
+    "meshtastic",
+    "overview"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Mesh \u2014 Network Overview",
+  "uid": "mesh-overview",
+  "version": 1,
+  "weekStart": ""
+}

@@ -1,0 +1,1461 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "description": "Drill-down view for a single node.",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {
+      "asDropdown": true,
+      "icon": "external link",
+      "includeVars": false,
+      "keepTime": true,
+      "tags": [
+        "meshtastic"
+      ],
+      "targetBlank": false,
+      "title": "Mesh dashboards",
+      "tooltip": "Switch dashboard",
+      "type": "dashboards"
+    }
+  ],
+  "panels": [
+    {
+      "id": 1,
+      "type": "table",
+      "title": "Node",
+      "description": "Latest known state for the selected node.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT node_id, short_name, long_name, hardware_model, role, mqtt_status,        latitude  * 1e-7 AS latitude,        longitude * 1e-7 AS longitude, altitude, updated_at FROM node_details WHERE node_id = '$nodeID' LIMIT 1",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": true,
+            "inspect": false
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      }
+    },
+    {
+      "id": 30,
+      "type": "geomap",
+      "title": "Location",
+      "description": "Last-known position for this node. Empty if the node hasn't broadcast a Position or MapReport.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT node_id,        COALESCE(NULLIF(long_name,'Unknown'), short_name, node_id) AS name,        hardware_model, role,        longitude * 1e-7 AS longitude_norm,        latitude  * 1e-7 AS latitude_norm, altitude FROM node_details WHERE node_id = '$nodeID' AND longitude IS NOT NULL AND longitude <> 0",
+          "refId": "Nodes"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "basemap": {
+          "config": {},
+          "name": "Basemap",
+          "type": "default"
+        },
+        "controls": {
+          "mouseWheelZoom": true,
+          "showAttribution": true,
+          "showDebug": false,
+          "showMeasure": false,
+          "showScale": true,
+          "showZoom": true
+        },
+        "layers": [
+          {
+            "name": "Node",
+            "type": "markers",
+            "config": {
+              "showLegend": false,
+              "style": {
+                "color": {
+                  "fixed": "red"
+                },
+                "opacity": 1,
+                "size": {
+                  "fixed": 10
+                },
+                "symbol": {
+                  "fixed": "img/icons/marker/circle.svg",
+                  "mode": "fixed"
+                }
+              }
+            },
+            "filterData": {
+              "id": "byRefId",
+              "options": "Nodes"
+            },
+            "location": {
+              "latitude": "latitude_norm",
+              "longitude": "longitude_norm",
+              "mode": "coords"
+            },
+            "tooltip": true
+          }
+        ],
+        "tooltip": {
+          "mode": "details"
+        },
+        "view": {
+          "id": "fit",
+          "allLayers": true,
+          "lastOnly": false,
+          "padding": 30
+        }
+      }
+    },
+    {
+      "id": 2,
+      "type": "row",
+      "title": "Traffic",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 24,
+        "h": 1
+      },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Sent (range)",
+      "description": "Packets sent by this node in the time range.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 9,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(*)::float AS value FROM mesh_packet_metrics WHERE source_id = '$nodeID' AND $__timeFilter(time)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short",
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Received (range)",
+      "description": "Unicast packets addressed to this node.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 4,
+        "y": 9,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(*)::float AS value FROM mesh_packet_metrics WHERE destination_id = '$nodeID' AND $__timeFilter(time)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short",
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Last sent",
+      "description": "Most recent packet originated by this node.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 9,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT EXTRACT(EPOCH FROM MAX(time))::bigint * 1000 AS value FROM mesh_packet_metrics WHERE source_id = '$nodeID'",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "unit": "dateTimeAsIso",
+          "noValue": "never"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 23,
+      "type": "stat",
+      "title": "Last received",
+      "description": "Most recent unicast packet addressed to this node.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 9,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT EXTRACT(EPOCH FROM MAX(time))::bigint * 1000 AS value FROM mesh_packet_metrics WHERE destination_id = '$nodeID'",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "unit": "dateTimeAsIso",
+          "noValue": "never"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 6,
+      "type": "piechart",
+      "title": "Sent \u2014 by portnum",
+      "description": "Packet types sent by this node.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 13,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT NOW() AS time, portnum AS metric, COUNT(*)::float AS value FROM mesh_packet_metrics WHERE source_id = '$nodeID' AND $__timeFilter(time) GROUP BY portnum",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "displayLabels": [
+          "percent"
+        ],
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 7,
+      "type": "piechart",
+      "title": "Received \u2014 by portnum",
+      "description": "Unicast packet types addressed to this node.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 13,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT NOW() AS time, portnum AS metric, COUNT(*)::float AS value FROM mesh_packet_metrics WHERE destination_id = '$nodeID' AND $__timeFilter(time) GROUP BY portnum",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "displayLabels": [
+          "percent"
+        ],
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 22,
+      "type": "table",
+      "title": "Reporting intervals",
+      "description": "Inferred reporting cadence for this node \u2014 how often it sends each telemetry type. *_iv = average interval (HH:MM:SS), blank = never observed. *_last = most-recent packet of that type. Refreshed every 10 minutes by a TimescaleDB scheduled job.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 9,
+        "w": 8,
+        "h": 12
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT * FROM (SELECT 'device' AS metric,        NULLIF(to_char(device_update_interval, 'HH24:MI:SS'), '00:00:00') AS interval,        NULLIF(device_update_last_timestamp, '1970-01-01'::timestamp) AS last_seen FROM node_configurations WHERE node_id = '$nodeID' UNION ALL SELECT 'environment' AS metric,        NULLIF(to_char(environment_update_interval, 'HH24:MI:SS'), '00:00:00') AS interval,        NULLIF(environment_update_last_timestamp, '1970-01-01'::timestamp) AS last_seen FROM node_configurations WHERE node_id = '$nodeID' UNION ALL SELECT 'power' AS metric,        NULLIF(to_char(power_update_interval, 'HH24:MI:SS'), '00:00:00') AS interval,        NULLIF(power_update_last_timestamp, '1970-01-01'::timestamp) AS last_seen FROM node_configurations WHERE node_id = '$nodeID' UNION ALL SELECT 'pax_counter' AS metric,        NULLIF(to_char(pax_counter_interval, 'HH24:MI:SS'), '00:00:00') AS interval,        NULLIF(pax_counter_last_timestamp, '1970-01-01'::timestamp) AS last_seen FROM node_configurations WHERE node_id = '$nodeID' UNION ALL SELECT 'neighbor' AS metric,        NULLIF(to_char(neighbor_info_interval, 'HH24:MI:SS'), '00:00:00') AS interval,        NULLIF(neighbor_info_last_timestamp, '1970-01-01'::timestamp) AS last_seen FROM node_configurations WHERE node_id = '$nodeID' UNION ALL SELECT 'map' AS metric,        NULLIF(to_char(map_broadcast_interval, 'HH24:MI:SS'), '00:00:00') AS interval,        NULLIF(map_broadcast_last_timestamp, '1970-01-01'::timestamp) AS last_seen FROM node_configurations WHERE node_id = '$nodeID') t ORDER BY metric",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": true,
+            "inspect": false
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      }
+    },
+    {
+      "id": 8,
+      "type": "row",
+      "title": "Device telemetry",
+      "gridPos": {
+        "x": 0,
+        "y": 21,
+        "w": 24,
+        "h": 1
+      },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Battery level",
+      "description": "Battery level reported via TELEMETRY_APP.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 22,
+        "w": 12,
+        "h": 7
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT $__timeGroupAlias(time, $__interval), AVG(battery_level) AS battery FROM device_metrics WHERE node_id = '$nodeID' AND $__timeFilter(time) GROUP BY 1 ORDER BY 1",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "showPoints": "never",
+            "spanNulls": true,
+            "axisGridShow": true,
+            "axisLabel": ""
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Voltage",
+      "description": "Voltage reported via TELEMETRY_APP.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 22,
+        "w": 12,
+        "h": 7
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT $__timeGroupAlias(time, $__interval), AVG(voltage) AS voltage FROM device_metrics WHERE node_id = '$nodeID' AND $__timeFilter(time) GROUP BY 1 ORDER BY 1",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "showPoints": "never",
+            "spanNulls": true,
+            "axisGridShow": true,
+            "axisLabel": ""
+          },
+          "unit": "volt"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Channel utilization & airtime",
+      "description": "ChUtil = receive-busy fraction. AirUtilTX = transmit duty cycle.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 29,
+        "w": 24,
+        "h": 7
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT $__timeGroupAlias(time, $__interval),        AVG(channel_utilization) AS \"ChUtil\",        AVG(air_util_tx)         AS \"AirUtilTX\" FROM device_metrics WHERE node_id = '$nodeID' AND $__timeFilter(time) GROUP BY 1 ORDER BY 1",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "showPoints": "never",
+            "spanNulls": true,
+            "axisGridShow": true,
+            "axisLabel": ""
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 12,
+      "type": "row",
+      "title": "Environment",
+      "gridPos": {
+        "x": 0,
+        "y": 36,
+        "w": 24,
+        "h": 1
+      },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "Temperature",
+      "description": "Temperature reading from ENVIRONMENT_METRICS.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 37,
+        "w": 8,
+        "h": 7
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT $__timeGroupAlias(time, $__interval), AVG(temperature) AS temperature FROM environment_metrics WHERE node_id = '$nodeID' AND $__timeFilter(time) GROUP BY 1 ORDER BY 1",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "showPoints": "never",
+            "spanNulls": true,
+            "axisGridShow": true,
+            "axisLabel": ""
+          },
+          "unit": "celsius"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "Humidity",
+      "description": "Relative humidity in percent.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 37,
+        "w": 8,
+        "h": 7
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT $__timeGroupAlias(time, $__interval), AVG(relative_humidity) AS humidity FROM environment_metrics WHERE node_id = '$nodeID' AND $__timeFilter(time) GROUP BY 1 ORDER BY 1",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "showPoints": "never",
+            "spanNulls": true,
+            "axisGridShow": true,
+            "axisLabel": ""
+          },
+          "unit": "humidity"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 15,
+      "type": "timeseries",
+      "title": "Barometric pressure",
+      "description": "Barometric pressure in hPa.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 37,
+        "w": 8,
+        "h": 7
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT $__timeGroupAlias(time, $__interval), AVG(barometric_pressure) AS pressure FROM environment_metrics WHERE node_id = '$nodeID' AND $__timeFilter(time) GROUP BY 1 ORDER BY 1",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "showPoints": "never",
+            "spanNulls": true,
+            "axisGridShow": true,
+            "axisLabel": ""
+          },
+          "unit": "pressurehpa"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 16,
+      "type": "row",
+      "title": "Power",
+      "gridPos": {
+        "x": 0,
+        "y": 44,
+        "w": 24,
+        "h": 1
+      },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 17,
+      "type": "timeseries",
+      "title": "Channel current",
+      "description": "Current measured on power channels.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 45,
+        "w": 12,
+        "h": 7
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT $__timeGroupAlias(time, $__interval),        AVG(ch1_current) AS \"Ch1\",        AVG(ch2_current) AS \"Ch2\",        AVG(ch3_current) AS \"Ch3\" FROM power_metrics WHERE node_id = '$nodeID' AND $__timeFilter(time) GROUP BY 1 ORDER BY 1",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "showPoints": "never",
+            "spanNulls": true,
+            "axisGridShow": true,
+            "axisLabel": ""
+          },
+          "unit": "amp"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 18,
+      "type": "timeseries",
+      "title": "Channel voltage",
+      "description": "Voltage measured on power channels.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 45,
+        "w": 12,
+        "h": 7
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT $__timeGroupAlias(time, $__interval),        AVG(ch1_voltage) AS \"Ch1\",        AVG(ch2_voltage) AS \"Ch2\",        AVG(ch3_voltage) AS \"Ch3\" FROM power_metrics WHERE node_id = '$nodeID' AND $__timeFilter(time) GROUP BY 1 ORDER BY 1",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "showPoints": "never",
+            "spanNulls": true,
+            "axisGridShow": true,
+            "axisLabel": ""
+          },
+          "unit": "volt"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 19,
+      "type": "row",
+      "title": "Connections",
+      "gridPos": {
+        "x": 0,
+        "y": 52,
+        "w": 24,
+        "h": 1
+      },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 21,
+      "type": "nodeGraph",
+      "title": "Topology around this node",
+      "description": "This node (blue) plus every peer it has exchanged unicast traffic with in the time range. Edge thickness = packet count; color = avg SNR (green \u2265 -7, yellow -13..-7, red < -13). Click any peer node to drill in.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 53,
+        "w": 24,
+        "h": 12
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH peers AS (  SELECT destination_id AS node_id FROM mesh_packet_metrics   WHERE source_id = '$nodeID'     AND destination_id NOT IN ('4294967295','1','0')     AND $__timeFilter(time)   UNION SELECT source_id FROM mesh_packet_metrics   WHERE destination_id = '$nodeID'     AND source_id NOT IN ('4294967295','1','0')     AND $__timeFilter(time)   UNION SELECT '$nodeID') SELECT cd.node_id AS \"id\",        COALESCE(NULLIF(cd.long_name,'Unknown'), cd.short_name, cd.node_id) AS \"title\",        cd.short_name AS \"subtitle\",        cd.hardware_model AS \"detail__Hardware\",        cd.role           AS \"detail__Role\",        CASE WHEN cd.node_id = '$nodeID' THEN '#3498DB'             WHEN cd.mqtt_status = 'online' THEN '#2ECC71'             ELSE '#7F8C8D' END AS \"color\" FROM node_details cd JOIN peers p ON p.node_id = cd.node_id",
+          "refId": "nodes"
+        },
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH ids AS (  SELECT destination_id AS node_id FROM mesh_packet_metrics   WHERE source_id = '$nodeID' AND destination_id NOT IN ('4294967295','1','0') AND $__timeFilter(time)   UNION SELECT source_id FROM mesh_packet_metrics   WHERE destination_id = '$nodeID' AND source_id NOT IN ('4294967295','1','0') AND $__timeFilter(time)   UNION SELECT '$nodeID') SELECT source_id || '_' || destination_id AS id,        source_id      AS \"source\", destination_id AS \"target\",        ROUND(AVG(NULLIF(rx_snr,0))::numeric, 1) AS \"mainstat\",        COUNT(*) AS \"secondarystat\",        CASE WHEN AVG(NULLIF(rx_snr,0)) < -13 THEN '#E74C3C'             WHEN AVG(NULLIF(rx_snr,0)) <  -7 THEN '#F4D03F'             ELSE '#2ECC71' END AS \"color\",        GREATEST(0.5, LEAST(4, LOG(COUNT(*) + 1))) AS \"thickness\" FROM mesh_packet_metrics WHERE destination_id NOT IN ('4294967295','1','0')   AND source_id      IN (SELECT node_id FROM ids)   AND destination_id IN (SELECT node_id FROM ids)   AND $__timeFilter(time) GROUP BY source_id, destination_id",
+          "refId": "edges"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "id"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open node detail",
+                    "url": "/d/mesh-node-detail?var-nodeID=${__data.fields.id}&${__url_time_range}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "title"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open node detail",
+                    "url": "/d/mesh-node-detail?var-nodeID=${__data.fields.id}&${__url_time_range}"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "nodes": {
+          "mainStatUnit": "short",
+          "secondaryStatUnit": "short",
+          "arcs": []
+        },
+        "edges": {
+          "mainStatUnit": "short",
+          "secondaryStatUnit": "short"
+        },
+        "nodeRadius": 40,
+        "edgeRadius": 4,
+        "zoomMode": "cooperative",
+        "layoutAlgorithm": "force"
+      }
+    },
+    {
+      "id": 20,
+      "type": "table",
+      "title": "Connections (table)",
+      "description": "Peers this node has talked to. Direction 'out' = unicast packets sent by $nodeID; 'in' = unicast packets addressed to $nodeID; 'neighbor' = NEIGHBORINFO_APP entries (rare on public mesh). Click any node_id to drill into that peer.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 65,
+        "w": 24,
+        "h": 10
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH outgoing AS (  SELECT 'out' AS direction, destination_id AS peer_id,          COUNT(*) AS pkts,          ROUND(AVG(NULLIF(rx_snr, 0))::numeric, 1)  AS avg_snr,          ROUND(AVG(NULLIF(rx_rssi, 0))::numeric, 0) AS avg_rssi,          MAX(time)::timestamptz AS last_seen   FROM mesh_packet_metrics   WHERE source_id = '$nodeID'     AND destination_id NOT IN ('4294967295','1','0')     AND $__timeFilter(time)   GROUP BY destination_id), incoming AS (  SELECT 'in'  AS direction, source_id AS peer_id,          COUNT(*) AS pkts,          ROUND(AVG(NULLIF(rx_snr, 0))::numeric, 1)  AS avg_snr,          ROUND(AVG(NULLIF(rx_rssi, 0))::numeric, 0) AS avg_rssi,          MAX(time)::timestamptz AS last_seen   FROM mesh_packet_metrics   WHERE destination_id = '$nodeID'     AND source_id NOT IN ('4294967295','1','0')     AND $__timeFilter(time)   GROUP BY source_id), traffic AS (  SELECT * FROM outgoing UNION ALL SELECT * FROM incoming), neighbors AS (  SELECT 'neighbor' AS direction, neighbor_id AS peer_id,          NULL::bigint AS pkts,          ROUND(snr::numeric, 1) AS avg_snr,          NULL::numeric AS avg_rssi,          NULL::timestamptz AS last_seen   FROM node_neighbors WHERE node_id = '$nodeID') SELECT t.direction, t.peer_id AS node_id,        COALESCE(NULLIF(nd.long_name,'Unknown'), nd.short_name, t.peer_id) AS name,        t.pkts, t.avg_snr, t.avg_rssi, t.last_seen FROM (SELECT * FROM traffic UNION ALL SELECT * FROM neighbors) t LEFT JOIN node_details nd ON nd.node_id = t.peer_id ORDER BY t.direction, t.pkts DESC NULLS LAST",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": true,
+            "inspect": false
+          },
+          "mappings": []
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "node_id"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open node detail",
+                    "url": "/d/mesh-node-detail?var-nodeID=${__data.fields.node_id}&${__url_time_range}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "avg_snr"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": -13
+                    },
+                    {
+                      "color": "green",
+                      "value": -7
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "avg_rssi"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": -110
+                    },
+                    {
+                      "color": "green",
+                      "value": -90
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      }
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": [
+    "meshtastic",
+    "node"
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "nodeID",
+        "label": "Node",
+        "type": "query",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "PA942B37CCFAF5A81"
+        },
+        "definition": "SELECT COALESCE(NULLIF(long_name,'Unknown'), short_name, node_id)        || ' (' || node_id || ')' AS __text,        node_id AS __value FROM node_details WHERE node_id NOT IN ('4294967295','1','0') ORDER BY long_name",
+        "query": "SELECT COALESCE(NULLIF(long_name,'Unknown'), short_name, node_id)        || ' (' || node_id || ')' AS __text,        node_id AS __value FROM node_details WHERE node_id NOT IN ('4294967295','1','0') ORDER BY long_name",
+        "refresh": 1,
+        "regex": "",
+        "sort": 1,
+        "multi": false,
+        "includeAll": false,
+        "allValue": null,
+        "current": {
+          "text": "",
+          "value": ""
+        },
+        "options": [],
+        "skipUrlSync": false,
+        "hide": 0
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Mesh \u2014 Node Detail",
+  "uid": "mesh-node-detail",
+  "version": 1,
+  "weekStart": ""
+}

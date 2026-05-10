@@ -1,0 +1,545 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "description": "People-counter (PAX) telemetry.",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {
+      "asDropdown": true,
+      "icon": "external link",
+      "includeVars": false,
+      "keepTime": true,
+      "tags": [
+        "meshtastic"
+      ],
+      "targetBlank": false,
+      "title": "Mesh dashboards",
+      "tooltip": "Switch dashboard",
+      "type": "dashboards"
+    }
+  ],
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "PAX nodes seen",
+      "description": "Distinct PAX nodes in the time range.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(DISTINCT node_id)::float AS value FROM pax_counter_metrics WHERE $__timeFilter(time)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short",
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "WiFi devices (latest)",
+      "description": "Sum of latest WiFi station counts across PAX nodes.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(SUM(latest), 0)::float AS value FROM (  SELECT DISTINCT ON (node_id) node_id, wifi_stations AS latest   FROM pax_counter_metrics WHERE $__timeFilter(time)   ORDER BY node_id, time DESC) t",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short",
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "BLE devices (latest)",
+      "description": "Sum of latest BLE beacon counts across PAX nodes.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(SUM(latest), 0)::float AS value FROM (  SELECT DISTINCT ON (node_id) node_id, ble_beacons AS latest   FROM pax_counter_metrics WHERE $__timeFilter(time)   ORDER BY node_id, time DESC) t",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short",
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "PAX uptime (max)",
+      "description": "Maximum PAX-counter uptime in the range.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(MAX(uptime), 0)::float AS value FROM pax_counter_metrics WHERE $__timeFilter(time)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "unit": "s",
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "WiFi & BLE counts over time",
+      "description": "Per-node trends from PAX_COUNTER packets.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 24,
+        "h": 9
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT $__timeGroupAlias(time, $__interval),        AVG(wifi_stations) AS \"WiFi stations\",        AVG(ble_beacons)   AS \"BLE beacons\" FROM pax_counter_metrics WHERE $__timeFilter(time) GROUP BY 1 ORDER BY 1",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "showPoints": "never",
+            "spanNulls": true,
+            "axisGridShow": true,
+            "axisLabel": ""
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "type": "table",
+      "title": "PAX-equipped nodes",
+      "description": "Most recent PAX reading per node. Click node_id for Node Detail.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 13,
+        "w": 24,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT DISTINCT ON (p.node_id) p.node_id,        COALESCE(nd.long_name, nd.short_name, p.node_id) AS name,        p.wifi_stations, p.ble_beacons, p.uptime, p.time AS last_reading FROM pax_counter_metrics p LEFT JOIN node_details nd ON nd.node_id = p.node_id WHERE $__timeFilter(p.time) ORDER BY p.node_id, p.time DESC",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": true,
+            "inspect": false
+          },
+          "mappings": []
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "node_id"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open node detail",
+                    "url": "/d/mesh-node-detail?var-nodeID=${__data.fields.node_id}&${__url_time_range}"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      }
+    },
+    {
+      "id": 7,
+      "type": "geomap",
+      "title": "PAX nodes on map",
+      "description": "Locations of PAX-equipped nodes that have reported recent counts. Click a marker tooltip link to drill into Node Detail.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 21,
+        "w": 24,
+        "h": 12
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT DISTINCT ON (p.node_id)        p.node_id,        COALESCE(NULLIF(nd.long_name,'Unknown'), nd.short_name, p.node_id) AS name,        p.wifi_stations, p.ble_beacons,        nd.longitude * 1e-7 AS longitude_norm,        nd.latitude  * 1e-7 AS latitude_norm FROM pax_counter_metrics p JOIN node_details nd ON nd.node_id = p.node_id WHERE $__timeFilter(p.time)   AND nd.longitude IS NOT NULL AND nd.longitude <> 0 ORDER BY p.node_id, p.time DESC",
+          "refId": "Nodes"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "node_id"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open node detail",
+                    "url": "/d/mesh-node-detail?var-nodeID=${__data.fields.node_id}&${__url_time_range}"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "basemap": {
+          "config": {},
+          "name": "Basemap",
+          "type": "default"
+        },
+        "controls": {
+          "mouseWheelZoom": true,
+          "showAttribution": true,
+          "showDebug": false,
+          "showMeasure": false,
+          "showScale": true,
+          "showZoom": true
+        },
+        "layers": [
+          {
+            "name": "PAX nodes",
+            "type": "markers",
+            "config": {
+              "showLegend": true,
+              "style": {
+                "color": {
+                  "fixed": "purple"
+                },
+                "opacity": 0.8,
+                "size": {
+                  "fixed": 6
+                },
+                "symbol": {
+                  "fixed": "img/icons/marker/circle.svg",
+                  "mode": "fixed"
+                }
+              }
+            },
+            "filterData": {
+              "id": "byRefId",
+              "options": "Nodes"
+            },
+            "location": {
+              "latitude": "latitude_norm",
+              "longitude": "longitude_norm",
+              "mode": "coords"
+            },
+            "tooltip": true
+          }
+        ],
+        "tooltip": {
+          "mode": "details"
+        },
+        "view": {
+          "id": "fit",
+          "allLayers": true,
+          "lastOnly": false,
+          "padding": 30
+        }
+      }
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": [
+    "meshtastic",
+    "pax"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Mesh \u2014 PAX Counters",
+  "uid": "mesh-pax",
+  "version": 1,
+  "weekStart": ""
+}
