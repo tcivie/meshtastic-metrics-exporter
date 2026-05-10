@@ -194,7 +194,7 @@
       "gridPos": {
         "x": 0,
         "y": 9,
-        "w": 8,
+        "w": 4,
         "h": 4
       },
       "targets": [
@@ -256,9 +256,9 @@
         "uid": "PA942B37CCFAF5A81"
       },
       "gridPos": {
-        "x": 8,
+        "x": 4,
         "y": 9,
-        "w": 8,
+        "w": 4,
         "h": 4
       },
       "targets": [
@@ -313,16 +313,16 @@
     {
       "id": 5,
       "type": "stat",
-      "title": "Last seen",
-      "description": "Most recent packet from this node.",
+      "title": "Last sent",
+      "description": "Most recent packet originated by this node.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
         "uid": "PA942B37CCFAF5A81"
       },
       "gridPos": {
-        "x": 16,
+        "x": 8,
         "y": 9,
-        "w": 8,
+        "w": 4,
         "h": 4
       },
       "targets": [
@@ -375,6 +375,70 @@
       }
     },
     {
+      "id": 23,
+      "type": "stat",
+      "title": "Last received",
+      "description": "Most recent unicast packet addressed to this node.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 9,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT EXTRACT(EPOCH FROM MAX(time))::bigint * 1000 AS value FROM mesh_packet_metrics WHERE destination_id = '$nodeID'",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "unit": "dateTimeAsIso",
+          "noValue": "never"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      }
+    },
+    {
       "id": 6,
       "type": "piechart",
       "title": "Sent \u2014 by portnum",
@@ -386,8 +450,8 @@
       "gridPos": {
         "x": 0,
         "y": 13,
-        "w": 12,
-        "h": 6
+        "w": 8,
+        "h": 8
       },
       "targets": [
         {
@@ -449,10 +513,10 @@
         "uid": "PA942B37CCFAF5A81"
       },
       "gridPos": {
-        "x": 12,
+        "x": 8,
         "y": 13,
-        "w": 12,
-        "h": 6
+        "w": 8,
+        "h": 8
       },
       "targets": [
         {
@@ -505,12 +569,69 @@
       }
     },
     {
+      "id": 22,
+      "type": "table",
+      "title": "Reporting intervals",
+      "description": "Inferred reporting cadence for this node \u2014 how often it sends each telemetry type. *_iv = average interval (HH:MM:SS), blank = never observed. *_last = most-recent packet of that type. Refreshed every 10 minutes by a TimescaleDB scheduled job.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 9,
+        "w": 8,
+        "h": 12
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT * FROM (SELECT 'device' AS metric,        NULLIF(to_char(device_update_interval, 'HH24:MI:SS'), '00:00:00') AS interval,        NULLIF(device_update_last_timestamp, '1970-01-01'::timestamp) AS last_seen FROM node_configurations WHERE node_id = '$nodeID' UNION ALL SELECT 'environment' AS metric,        NULLIF(to_char(environment_update_interval, 'HH24:MI:SS'), '00:00:00') AS interval,        NULLIF(environment_update_last_timestamp, '1970-01-01'::timestamp) AS last_seen FROM node_configurations WHERE node_id = '$nodeID' UNION ALL SELECT 'power' AS metric,        NULLIF(to_char(power_update_interval, 'HH24:MI:SS'), '00:00:00') AS interval,        NULLIF(power_update_last_timestamp, '1970-01-01'::timestamp) AS last_seen FROM node_configurations WHERE node_id = '$nodeID' UNION ALL SELECT 'pax_counter' AS metric,        NULLIF(to_char(pax_counter_interval, 'HH24:MI:SS'), '00:00:00') AS interval,        NULLIF(pax_counter_last_timestamp, '1970-01-01'::timestamp) AS last_seen FROM node_configurations WHERE node_id = '$nodeID' UNION ALL SELECT 'neighbor' AS metric,        NULLIF(to_char(neighbor_info_interval, 'HH24:MI:SS'), '00:00:00') AS interval,        NULLIF(neighbor_info_last_timestamp, '1970-01-01'::timestamp) AS last_seen FROM node_configurations WHERE node_id = '$nodeID' UNION ALL SELECT 'map' AS metric,        NULLIF(to_char(map_broadcast_interval, 'HH24:MI:SS'), '00:00:00') AS interval,        NULLIF(map_broadcast_last_timestamp, '1970-01-01'::timestamp) AS last_seen FROM node_configurations WHERE node_id = '$nodeID') t ORDER BY metric",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": true,
+            "inspect": false
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      }
+    },
+    {
       "id": 8,
       "type": "row",
       "title": "Device telemetry",
       "gridPos": {
         "x": 0,
-        "y": 19,
+        "y": 21,
         "w": 24,
         "h": 1
       },
@@ -528,7 +649,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 20,
+        "y": 22,
         "w": 12,
         "h": 7
       },
@@ -588,7 +709,7 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 20,
+        "y": 22,
         "w": 12,
         "h": 7
       },
@@ -648,7 +769,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 27,
+        "y": 29,
         "w": 24,
         "h": 7
       },
@@ -704,7 +825,7 @@
       "title": "Environment",
       "gridPos": {
         "x": 0,
-        "y": 34,
+        "y": 36,
         "w": 24,
         "h": 1
       },
@@ -722,7 +843,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 35,
+        "y": 37,
         "w": 8,
         "h": 7
       },
@@ -782,7 +903,7 @@
       },
       "gridPos": {
         "x": 8,
-        "y": 35,
+        "y": 37,
         "w": 8,
         "h": 7
       },
@@ -842,7 +963,7 @@
       },
       "gridPos": {
         "x": 16,
-        "y": 35,
+        "y": 37,
         "w": 8,
         "h": 7
       },
@@ -897,7 +1018,7 @@
       "title": "Power",
       "gridPos": {
         "x": 0,
-        "y": 42,
+        "y": 44,
         "w": 24,
         "h": 1
       },
@@ -915,7 +1036,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 43,
+        "y": 45,
         "w": 12,
         "h": 7
       },
@@ -976,7 +1097,7 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 43,
+        "y": 45,
         "w": 12,
         "h": 7
       },
@@ -1032,7 +1153,7 @@
       "title": "Connections",
       "gridPos": {
         "x": 0,
-        "y": 50,
+        "y": 52,
         "w": 24,
         "h": 1
       },
@@ -1050,7 +1171,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 51,
+        "y": 53,
         "w": 24,
         "h": 12
       },
@@ -1146,7 +1267,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 63,
+        "y": 65,
         "w": 24,
         "h": 10
       },

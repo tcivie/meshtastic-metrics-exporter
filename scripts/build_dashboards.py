@@ -481,7 +481,7 @@ def _overview_activity_panels() -> list:
             "       portnum AS metric, COUNT(*)::float AS value "
             "FROM mesh_packet_metrics WHERE $__timeFilter(time) "
             "GROUP BY 1, portnum ORDER BY 1",
-            grid(0, 6, 16, 7),
+            grid(0, 6, 12, 7),
             {"description": "Mesh-wide packet rate broken out by portnum."},
         ),
         piechart_panel(
@@ -490,8 +490,36 @@ def _overview_activity_panels() -> list:
             "SELECT NOW() AS time, portnum AS metric, COUNT(*)::float AS value "
             "FROM mesh_packet_metrics WHERE $__timeFilter(time) "
             "GROUP BY portnum ORDER BY value DESC",
-            grid(16, 6, 8, 7),
+            grid(12, 6, 6, 7),
             {"description": "Distribution of packet types over the selected range."},
+        ),
+        stat_panel(
+            30,
+            "Data volume (range)",
+            "SELECT COALESCE(SUM(message_size_bytes),0)::float AS value "
+            "FROM mesh_packet_metrics WHERE $__timeFilter(time)",
+            grid(18, 6, 6, 4),
+            {
+                "description": "Total bytes carried by mesh packets in the selected range (envelope size).",
+                "unit": "bytes",
+                "thresholds": [{"color": "blue", "value": None}],
+                "color_mode": "value",
+            },
+        ),
+        stat_panel(
+            31,
+            "Max hop_start",
+            "SELECT MAX(hop_start)::float AS value FROM mesh_packet_metrics "
+            "WHERE $__timeFilter(time) AND hop_start > 0",
+            grid(18, 10, 6, 3),
+            {
+                "description": "Highest hop_start TTL observed in the range. Higher means nodes set deeper relays.",
+                "thresholds": [
+                    {"color": "green", "value": None},
+                    {"color": "yellow", "value": 4},
+                    {"color": "red", "value": 7},
+                ],
+            },
         ),
     ]
 
@@ -518,7 +546,7 @@ def _overview_quality_panels() -> list:
         12,
         "Top 10 channel utilizers",
         top_util_sql,
-        grid(0, 14, 24, 9),
+        grid(0, 14, 16, 9),
         {
             "description": "Top 10 nodes by avg ChUtil. Click a series in the legend to drill into Node Detail.",
             "unit": "percent",
@@ -531,7 +559,26 @@ def _overview_quality_panels() -> list:
             "targetBlank": False,
         }
     ]
-    return [panel]
+    avg_chutil_sql = (
+        "SELECT $__timeGroupAlias(time, $__interval), "
+        '       AVG(channel_utilization) AS "ChUtil", '
+        '       AVG(air_util_tx)         AS "AirUtilTX" '
+        "FROM device_metrics WHERE $__timeFilter(time) "
+        "GROUP BY 1 ORDER BY 1"
+    )
+    return [
+        panel,
+        timeseries_panel(
+            32,
+            "Mesh-wide ChUtil & AirUtilTX",
+            avg_chutil_sql,
+            grid(16, 14, 8, 9),
+            {
+                "description": "Average channel utilization and transmit duty cycle across all nodes.",
+                "unit": "percent",
+            },
+        ),
+    ]
 
 
 def _overview_directory() -> list:
@@ -727,7 +774,7 @@ def _node_traffic_stats() -> list:
             "Sent (range)",
             "SELECT COUNT(*)::float AS value FROM mesh_packet_metrics "
             "WHERE source_id = '$nodeID' AND $__timeFilter(time)",
-            grid(0, 9, 8, 4),
+            grid(0, 9, 4, 4),
             {"description": "Packets sent by this node in the time range."},
         ),
         stat_panel(
@@ -735,17 +782,30 @@ def _node_traffic_stats() -> list:
             "Received (range)",
             "SELECT COUNT(*)::float AS value FROM mesh_packet_metrics "
             "WHERE destination_id = '$nodeID' AND $__timeFilter(time)",
-            grid(8, 9, 8, 4),
+            grid(4, 9, 4, 4),
             {"description": "Unicast packets addressed to this node."},
         ),
         stat_panel(
             5,
-            "Last seen",
+            "Last sent",
             "SELECT EXTRACT(EPOCH FROM MAX(time))::bigint * 1000 AS value "
             "FROM mesh_packet_metrics WHERE source_id = '$nodeID'",
-            grid(16, 9, 8, 4),
+            grid(8, 9, 4, 4),
             {
-                "description": "Most recent packet from this node.",
+                "description": "Most recent packet originated by this node.",
+                "unit": "dateTimeAsIso",
+                "thresholds": [{"color": "blue", "value": None}],
+                "no_value": "never",
+            },
+        ),
+        stat_panel(
+            23,
+            "Last received",
+            "SELECT EXTRACT(EPOCH FROM MAX(time))::bigint * 1000 AS value "
+            "FROM mesh_packet_metrics WHERE destination_id = '$nodeID'",
+            grid(12, 9, 4, 4),
+            {
+                "description": "Most recent unicast packet addressed to this node.",
                 "unit": "dateTimeAsIso",
                 "thresholds": [{"color": "blue", "value": None}],
                 "no_value": "never",
@@ -757,7 +817,7 @@ def _node_traffic_stats() -> list:
             "SELECT NOW() AS time, portnum AS metric, COUNT(*)::float AS value "
             "FROM mesh_packet_metrics WHERE source_id = '$nodeID' "
             "AND $__timeFilter(time) GROUP BY portnum",
-            grid(0, 13, 12, 6),
+            grid(0, 13, 8, 8),
             {"description": "Packet types sent by this node."},
         ),
         piechart_panel(
@@ -766,9 +826,10 @@ def _node_traffic_stats() -> list:
             "SELECT NOW() AS time, portnum AS metric, COUNT(*)::float AS value "
             "FROM mesh_packet_metrics WHERE destination_id = '$nodeID' "
             "AND $__timeFilter(time) GROUP BY portnum",
-            grid(12, 13, 12, 6),
+            grid(8, 13, 8, 8),
             {"description": "Unicast packet types addressed to this node."},
         ),
+        _node_reporting_intervals(),
     ]
 
 
@@ -780,7 +841,7 @@ def _node_telemetry() -> list:
             "SELECT $__timeGroupAlias(time, $__interval), AVG(battery_level) AS battery "
             "FROM device_metrics WHERE node_id = '$nodeID' AND $__timeFilter(time) "
             "GROUP BY 1 ORDER BY 1",
-            grid(0, 20, 12, 7),
+            grid(0, 22, 12, 7),
             {
                 "description": "Battery level reported via TELEMETRY_APP.",
                 "unit": "percent",
@@ -793,7 +854,7 @@ def _node_telemetry() -> list:
             "SELECT $__timeGroupAlias(time, $__interval), AVG(voltage) AS voltage "
             "FROM device_metrics WHERE node_id = '$nodeID' AND $__timeFilter(time) "
             "GROUP BY 1 ORDER BY 1",
-            grid(12, 20, 12, 7),
+            grid(12, 22, 12, 7),
             {
                 "description": "Voltage reported via TELEMETRY_APP.",
                 "unit": "volt",
@@ -808,7 +869,7 @@ def _node_telemetry() -> list:
             '       AVG(air_util_tx)         AS "AirUtilTX" '
             "FROM device_metrics WHERE node_id = '$nodeID' AND $__timeFilter(time) "
             "GROUP BY 1 ORDER BY 1",
-            grid(0, 27, 24, 7),
+            grid(0, 29, 24, 7),
             {
                 "description": "ChUtil = receive-busy fraction. AirUtilTX = transmit duty cycle.",
                 "unit": "percent",
@@ -828,7 +889,7 @@ def _node_environment() -> list:
             13,
             "Temperature",
             base.format(col="temperature", alias="temperature"),
-            grid(0, 35, 8, 7),
+            grid(0, 37, 8, 7),
             {
                 "description": "Temperature reading from ENVIRONMENT_METRICS.",
                 "unit": "celsius",
@@ -839,7 +900,7 @@ def _node_environment() -> list:
             14,
             "Humidity",
             base.format(col="relative_humidity", alias="humidity"),
-            grid(8, 35, 8, 7),
+            grid(8, 37, 8, 7),
             {
                 "description": "Relative humidity in percent.",
                 "unit": "humidity",
@@ -850,7 +911,7 @@ def _node_environment() -> list:
             15,
             "Barometric pressure",
             base.format(col="barometric_pressure", alias="pressure"),
-            grid(16, 35, 8, 7),
+            grid(16, 37, 8, 7),
             {
                 "description": "Barometric pressure in hPa.",
                 "unit": "pressurehpa",
@@ -874,17 +935,56 @@ def _node_power() -> list:
             17,
             "Channel current",
             base.format(kind="current"),
-            grid(0, 43, 12, 7),
+            grid(0, 45, 12, 7),
             {"description": "Current measured on power channels.", "unit": "amp"},
         ),
         timeseries_panel(
             18,
             "Channel voltage",
             base.format(kind="voltage"),
-            grid(12, 43, 12, 7),
+            grid(12, 45, 12, 7),
             {"description": "Voltage measured on power channels.", "unit": "volt"},
         ),
     ]
+
+
+def _node_reporting_intervals() -> dict:
+    rows = [
+        ("device", "device_update_interval", "device_update_last_timestamp"),
+        (
+            "environment",
+            "environment_update_interval",
+            "environment_update_last_timestamp",
+        ),
+        ("power", "power_update_interval", "power_update_last_timestamp"),
+        ("pax_counter", "pax_counter_interval", "pax_counter_last_timestamp"),
+        ("neighbor", "neighbor_info_interval", "neighbor_info_last_timestamp"),
+        ("map", "map_broadcast_interval", "map_broadcast_last_timestamp"),
+    ]
+    selects = " UNION ALL ".join(
+        "SELECT '{m}' AS metric, "
+        "       NULLIF(to_char({iv}, 'HH24:MI:SS'), '00:00:00') AS interval, "
+        "       NULLIF({last}, '1970-01-01'::timestamp) AS last_seen "
+        "FROM node_configurations WHERE node_id = '$nodeID'".format(
+            m=m, iv=iv, last=last
+        )
+        for m, iv, last in rows
+    )
+    sql = "SELECT * FROM (" + selects + ") t ORDER BY metric"
+    return table_panel(
+        22,
+        "Reporting intervals",
+        sql,
+        grid(16, 9, 8, 12),
+        {
+            "description": (
+                "Inferred reporting cadence for this node — how often it sends each telemetry type. "
+                "*_iv = average interval (HH:MM:SS), blank = never observed. "
+                "*_last = most-recent packet of that type. "
+                "Refreshed every 10 minutes by a TimescaleDB scheduled job."
+            ),
+        },
+    )
 
 
 def _node_topology() -> dict:
@@ -947,7 +1047,7 @@ def _node_topology() -> dict:
             "Click any peer node to drill in."
         ),
         "datasource": dict(DS),
-        "gridPos": grid(0, 51, 24, 12),
+        "gridPos": grid(0, 53, 24, 12),
         "targets": [
             target(nodes_sql, refId="nodes"),
             target(edges_sql, refId="edges"),
@@ -1027,7 +1127,7 @@ def _node_neighbors() -> dict:
         20,
         "Connections (table)",
         sql,
-        grid(0, 63, 24, 10),
+        grid(0, 65, 24, 10),
         {
             "description": (
                 "Peers this node has talked to. "
@@ -1061,13 +1161,13 @@ def _node_var() -> dict:
 def build_node_detail() -> dict[str, Any]:
     panels: list = [_node_header(), _node_map(), row(2, "Traffic", 8)]
     panels.extend(_node_traffic_stats())
-    panels.append(row(8, "Device telemetry", 19))
+    panels.append(row(8, "Device telemetry", 21))
     panels.extend(_node_telemetry())
-    panels.append(row(12, "Environment", 34))
+    panels.append(row(12, "Environment", 36))
     panels.extend(_node_environment())
-    panels.append(row(16, "Power", 42))
+    panels.append(row(16, "Power", 44))
     panels.extend(_node_power())
-    panels.append(row(19, "Connections", 50))
+    panels.append(row(19, "Connections", 52))
     panels.append(_node_topology())
     panels.append(_node_neighbors())
     return dashboard(
@@ -1378,6 +1478,87 @@ def _pax_stats() -> list:
     ]
 
 
+def _pax_geomap() -> dict:
+    sql = (
+        "SELECT DISTINCT ON (p.node_id) "
+        "       p.node_id, "
+        "       COALESCE(NULLIF(nd.long_name,'Unknown'), nd.short_name, p.node_id) AS name, "
+        "       p.wifi_stations, p.ble_beacons, "
+        "       nd.longitude * 1e-7 AS longitude_norm, "
+        "       nd.latitude  * 1e-7 AS latitude_norm "
+        "FROM pax_counter_metrics p "
+        "JOIN node_details nd ON nd.node_id = p.node_id "
+        "WHERE $__timeFilter(p.time) "
+        "  AND nd.longitude IS NOT NULL AND nd.longitude <> 0 "
+        "ORDER BY p.node_id, p.time DESC"
+    )
+    drill_url = (
+        f"/d/{DASH_UIDS['node']}?var-nodeID="
+        "${__data.fields.node_id}&${__url_time_range}"
+    )
+    return {
+        "id": 7,
+        "type": "geomap",
+        "title": "PAX nodes on map",
+        "description": "Locations of PAX-equipped nodes that have reported recent counts. Click a marker tooltip link to drill into Node Detail.",
+        "datasource": dict(DS),
+        "gridPos": grid(0, 21, 24, 12),
+        "targets": [target(sql, refId="Nodes")],
+        "fieldConfig": {
+            "defaults": {},
+            "overrides": [
+                {
+                    "matcher": {"id": "byName", "options": "node_id"},
+                    "properties": [
+                        {
+                            "id": "links",
+                            "value": [{"title": "Open node detail", "url": drill_url}],
+                        }
+                    ],
+                },
+            ],
+        },
+        "options": {
+            "basemap": {"config": {}, "name": "Basemap", "type": "default"},
+            "controls": {
+                "mouseWheelZoom": True,
+                "showAttribution": True,
+                "showDebug": False,
+                "showMeasure": False,
+                "showScale": True,
+                "showZoom": True,
+            },
+            "layers": [
+                {
+                    "name": "PAX nodes",
+                    "type": "markers",
+                    "config": {
+                        "showLegend": True,
+                        "style": {
+                            "color": {"fixed": "purple"},
+                            "opacity": 0.8,
+                            "size": {"fixed": 6},
+                            "symbol": {
+                                "fixed": "img/icons/marker/circle.svg",
+                                "mode": "fixed",
+                            },
+                        },
+                    },
+                    "filterData": {"id": "byRefId", "options": "Nodes"},
+                    "location": {
+                        "latitude": "latitude_norm",
+                        "longitude": "longitude_norm",
+                        "mode": "coords",
+                    },
+                    "tooltip": True,
+                }
+            ],
+            "tooltip": {"mode": "details"},
+            "view": {"id": "fit", "allLayers": True, "lastOnly": False, "padding": 30},
+        },
+    }
+
+
 def build_pax() -> dict[str, Any]:
     trends_sql = (
         "SELECT $__timeGroupAlias(time, $__interval), "
@@ -1413,6 +1594,7 @@ def build_pax() -> dict[str, Any]:
                 "drill_dashboard_uid": DASH_UIDS["node"],
             },
         ),
+        _pax_geomap(),
     ]
     return dashboard(
         DASH_UIDS["pax"],

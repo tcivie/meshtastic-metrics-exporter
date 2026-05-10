@@ -414,6 +414,113 @@
         },
         "showHeader": true
       }
+    },
+    {
+      "id": 7,
+      "type": "geomap",
+      "title": "PAX nodes on map",
+      "description": "Locations of PAX-equipped nodes that have reported recent counts. Click a marker tooltip link to drill into Node Detail.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 21,
+        "w": 24,
+        "h": 12
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT DISTINCT ON (p.node_id)        p.node_id,        COALESCE(NULLIF(nd.long_name,'Unknown'), nd.short_name, p.node_id) AS name,        p.wifi_stations, p.ble_beacons,        nd.longitude * 1e-7 AS longitude_norm,        nd.latitude  * 1e-7 AS latitude_norm FROM pax_counter_metrics p JOIN node_details nd ON nd.node_id = p.node_id WHERE $__timeFilter(p.time)   AND nd.longitude IS NOT NULL AND nd.longitude <> 0 ORDER BY p.node_id, p.time DESC",
+          "refId": "Nodes"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "node_id"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open node detail",
+                    "url": "/d/mesh-node-detail?var-nodeID=${__data.fields.node_id}&${__url_time_range}"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "basemap": {
+          "config": {},
+          "name": "Basemap",
+          "type": "default"
+        },
+        "controls": {
+          "mouseWheelZoom": true,
+          "showAttribution": true,
+          "showDebug": false,
+          "showMeasure": false,
+          "showScale": true,
+          "showZoom": true
+        },
+        "layers": [
+          {
+            "name": "PAX nodes",
+            "type": "markers",
+            "config": {
+              "showLegend": true,
+              "style": {
+                "color": {
+                  "fixed": "purple"
+                },
+                "opacity": 0.8,
+                "size": {
+                  "fixed": 6
+                },
+                "symbol": {
+                  "fixed": "img/icons/marker/circle.svg",
+                  "mode": "fixed"
+                }
+              }
+            },
+            "filterData": {
+              "id": "byRefId",
+              "options": "Nodes"
+            },
+            "location": {
+              "latitude": "latitude_norm",
+              "longitude": "longitude_norm",
+              "mode": "coords"
+            },
+            "tooltip": true
+          }
+        ],
+        "tooltip": {
+          "mode": "details"
+        },
+        "view": {
+          "id": "fit",
+          "allLayers": true,
+          "lastOnly": false,
+          "padding": 30
+        }
+      }
     }
   ],
   "refresh": "30s",
