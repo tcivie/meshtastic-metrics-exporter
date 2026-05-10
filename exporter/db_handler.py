@@ -37,6 +37,12 @@ class DBHandler:
     def store_pax_counter_metrics(self, node_id: str, metrics: Dict[str, Any]):
         self._insert_node_metrics("pax_counter_metrics", node_id, metrics)
 
+    def store_local_stats(self, node_id: str, metrics: Dict[str, Any]):
+        self._insert_node_metrics("local_stats", node_id, metrics)
+
+    def store_node_position(self, node_id: str, metrics: Dict[str, Any]):
+        self._insert_node_metrics("node_position_metrics", node_id, metrics)
+
     def store_mesh_packet_metrics(
         self, source_id: str, destination_id: str, metrics: Dict[str, Any]
     ):

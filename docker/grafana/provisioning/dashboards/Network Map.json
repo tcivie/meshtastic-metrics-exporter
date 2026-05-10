@@ -1,0 +1,301 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "description": "Geographic positions plus radio topology.",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {
+      "asDropdown": true,
+      "icon": "external link",
+      "includeVars": false,
+      "keepTime": true,
+      "tags": [
+        "meshtastic"
+      ],
+      "targetBlank": false,
+      "title": "Mesh dashboards",
+      "tooltip": "Switch dashboard",
+      "type": "dashboards"
+    }
+  ],
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "Geographic map",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 1
+      },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 2,
+      "type": "geomap",
+      "title": "Nodes on map",
+      "description": "Last-known position of every node that broadcast Position or MapReport. Click a marker's tooltip link to drill into that node.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 1,
+        "w": 24,
+        "h": 12
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT node_id,        COALESCE(NULLIF(long_name,'Unknown'), short_name, node_id) AS name,        hardware_model, role, mqtt_status,        longitude * 1e-7 AS longitude_norm,        latitude  * 1e-7 AS latitude_norm, altitude FROM node_details WHERE longitude IS NOT NULL AND longitude <> 0",
+          "refId": "Nodes"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "node_id"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open node detail",
+                    "url": "/d/mesh-node-detail?var-nodeID=${__data.fields.node_id}&${__url_time_range}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "name"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open node detail",
+                    "url": "/d/mesh-node-detail?var-nodeID=${__data.fields.node_id}&${__url_time_range}"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "basemap": {
+          "config": {},
+          "name": "Basemap",
+          "type": "default"
+        },
+        "controls": {
+          "mouseWheelZoom": true,
+          "showAttribution": true,
+          "showDebug": false,
+          "showMeasure": true,
+          "showScale": true,
+          "showZoom": true
+        },
+        "layers": [
+          {
+            "name": "Nodes",
+            "type": "markers",
+            "config": {
+              "showLegend": true,
+              "style": {
+                "color": {
+                  "fixed": "dark-green"
+                },
+                "opacity": 0.8,
+                "size": {
+                  "fixed": 5,
+                  "min": 3,
+                  "max": 12
+                },
+                "symbol": {
+                  "fixed": "img/icons/marker/circle.svg",
+                  "mode": "fixed"
+                },
+                "textConfig": {
+                  "fontSize": 12,
+                  "offsetX": 0,
+                  "offsetY": 5,
+                  "textAlign": "center",
+                  "textBaseline": "middle"
+                }
+              }
+            },
+            "filterData": {
+              "id": "byRefId",
+              "options": "Nodes"
+            },
+            "location": {
+              "latitude": "latitude_norm",
+              "longitude": "longitude_norm",
+              "mode": "coords"
+            },
+            "tooltip": true
+          }
+        ],
+        "tooltip": {
+          "mode": "details"
+        },
+        "view": {
+          "id": "fit",
+          "allLayers": true,
+          "lastOnly": false,
+          "padding": 30
+        }
+      }
+    },
+    {
+      "id": 3,
+      "type": "row",
+      "title": "Topology",
+      "gridPos": {
+        "x": 0,
+        "y": 13,
+        "w": 24,
+        "h": 1
+      },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 4,
+      "type": "nodeGraph",
+      "title": "Top-200 active senders",
+      "description": "Top 200 senders in the last hour plus NEIGHBORINFO peers. Edges = unicast traffic colored by SNR. Click a node and choose 'Open node detail' from the context menu.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 14,
+        "w": 24,
+        "h": 14
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH appearances AS (  SELECT source_id      AS node_id FROM mesh_packet_metrics   WHERE time > NOW() - INTERVAL '1 hour'     AND destination_id NOT IN ('4294967295','1','0')     AND source_id <> destination_id   UNION ALL   SELECT destination_id AS node_id FROM mesh_packet_metrics   WHERE time > NOW() - INTERVAL '1 hour'     AND destination_id NOT IN ('4294967295','1','0')     AND source_id <> destination_id   UNION ALL SELECT node_id     FROM node_neighbors   UNION ALL SELECT neighbor_id FROM node_neighbors), ranked AS (  SELECT node_id, COUNT(*) AS conns FROM appearances   GROUP BY node_id ORDER BY conns DESC LIMIT 200) SELECT cd.node_id AS \"id\", cd.long_name AS \"title\",        cd.short_name AS \"subtitle\",        cd.hardware_model AS \"detail__Hardware\",        cd.role           AS \"detail__Role\",        cd.mqtt_status    AS \"detail__MQTT status\",        CASE WHEN cd.mqtt_status = 'online' THEN '#2ECC71'             WHEN cd.mqtt_status = 'offline' THEN '#E74C3C'             ELSE '#7F8C8D' END AS \"color\" FROM node_details cd JOIN ranked r ON r.node_id = cd.node_id",
+          "refId": "nodes"
+        },
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH appearances AS (  SELECT source_id      AS node_id FROM mesh_packet_metrics   WHERE time > NOW() - INTERVAL '1 hour'     AND destination_id NOT IN ('4294967295','1','0')     AND source_id <> destination_id   UNION ALL   SELECT destination_id AS node_id FROM mesh_packet_metrics   WHERE time > NOW() - INTERVAL '1 hour'     AND destination_id NOT IN ('4294967295','1','0')     AND source_id <> destination_id   UNION ALL SELECT node_id     FROM node_neighbors   UNION ALL SELECT neighbor_id FROM node_neighbors), ranked AS (  SELECT node_id, COUNT(*) AS conns FROM appearances   GROUP BY node_id ORDER BY conns DESC LIMIT 200) , aggregated AS (  SELECT source_id, destination_id, COUNT(*) AS pkts,          AVG(NULLIF(rx_snr, 0)) AS avg_snr   FROM mesh_packet_metrics   WHERE time > NOW() - INTERVAL '1 hour'     AND destination_id NOT IN ('4294967295','1','0')     AND source_id <> destination_id     AND source_id      IN (SELECT node_id FROM ranked)     AND destination_id IN (SELECT node_id FROM ranked)   GROUP BY source_id, destination_id) SELECT source_id || '_' || destination_id AS id,        source_id      AS \"source\", destination_id AS \"target\",        ROUND(avg_snr::numeric, 1) AS \"mainstat\", pkts AS \"secondarystat\",        CASE WHEN avg_snr < -13 THEN '#E74C3C'             WHEN avg_snr <  -7 THEN '#F4D03F'             ELSE '#2ECC71' END AS \"color\",        GREATEST(0.5, LEAST(4, LOG(pkts + 1))) AS \"thickness\" FROM aggregated UNION ALL SELECT neighbor_id || '_' || node_id AS id,        neighbor_id AS \"source\", node_id AS \"target\",        snr AS \"mainstat\", NULL AS \"secondarystat\",        CASE WHEN snr < -13 THEN '#E74C3C'             WHEN snr <  -7 THEN '#F4D03F'             ELSE '#2ECC71' END AS \"color\",        GREATEST(0.5, LEAST(4, 1 + ((snr + 13) / 10))) AS \"thickness\" FROM node_neighbors WHERE node_id     IN (SELECT node_id FROM ranked)   AND neighbor_id IN (SELECT node_id FROM ranked)",
+          "refId": "edges"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "id"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open node detail",
+                    "url": "/d/mesh-node-detail?var-nodeID=${__data.fields.id}&${__url_time_range}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "title"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open node detail",
+                    "url": "/d/mesh-node-detail?var-nodeID=${__data.fields.id}&${__url_time_range}"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "nodes": {
+          "mainStatUnit": "short",
+          "secondaryStatUnit": "short",
+          "arcs": []
+        },
+        "edges": {
+          "mainStatUnit": "short",
+          "secondaryStatUnit": "short"
+        },
+        "nodeRadius": 40,
+        "edgeRadius": 4,
+        "zoomMode": "cooperative",
+        "layoutAlgorithm": "force"
+      }
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": [
+    "meshtastic",
+    "map"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Mesh \u2014 Network Map",
+  "uid": "mesh-network-map",
+  "version": 1,
+  "weekStart": ""
+}

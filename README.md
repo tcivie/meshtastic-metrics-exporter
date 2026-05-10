@@ -1,106 +1,209 @@
-# Meshtastic Metrics Exporter
+<div align="center">
+
+# 📡 Meshtastic Metrics Exporter
+
+**Drop-in observability for any Meshtastic mesh — MQTT → TimescaleDB → Grafana**
+
 [![CodeQL](https://github.com/tcivie/meshtastic-metrics-exporter/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/tcivie/meshtastic-metrics-exporter/actions/workflows/github-code-scanning/codeql)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+[![Grafana 13](https://img.shields.io/badge/Grafana-13.0-orange?logo=grafana&logoColor=white)](https://grafana.com/)
+[![TimescaleDB](https://img.shields.io/badge/TimescaleDB-pg16-336791?logo=postgresql&logoColor=white)](https://www.timescale.com/)
+[![Python 3](https://img.shields.io/badge/Python-3.x-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 
-The `meshtastic-metrics-exporter` is a tool designed to collect and store comprehensive data from Meshtastic MQTT servers into TimescaleDB, with pre-configured Grafana dashboards for visualization and analysis.
+Subscribes to a Meshtastic MQTT topic, decodes every packet type, stores time-series telemetry in TimescaleDB hypertables, and ships five linked Grafana dashboards out of the box.
 
-## Features
+</div>
 
-- Ingests nearly all packet types from Meshtastic MQTT servers
-- Stores time-series metrics in TimescaleDB hypertables for efficient querying
-- Tracks node details, telemetry, and network topology in PostgreSQL tables
-- Comes with pre-configured Grafana dashboards for immediate visualization
-- Automatic data retention policies and continuous aggregations
-- Configuration via `.env` file
+---
 
-## Community Showcases
+## ✨ Highlights
 
-Running this exporter for your local mesh community? We'd love to hear about it.
+- 📥 Ingests every Meshtastic packet type — telemetry, position, neighbor info, map reports, PAX, traceroute, …
+- 🗜️ TimescaleDB hypertables with **14-day** columnstore compression and **30-day** retention
+- 🧭 Five linked dashboards with click-through drill-downs from any `node_id` cell
+- 🎨 Color-coded SNR / RSSI / hop columns — bad signals jump out at a glance
+- 🔌 Single `docker compose up -d` — no extra wiring required
+- 🧪 Pytest suite covering the dashboards, DB-handler SQL, and protobuf processors
 
-If you have a public dashboard or an interesting deployment, open a [discussion](https://github.com/tcivie/meshtastic-metrics-exporter/discussions) or submit a PR to add your instance to the list below. Share what you're monitoring, how you've customized things, or what features you wish existed — it all helps shape where this project goes next.
+---
 
-### Live Instances
+## 📑 Table of contents
 
-| Community | Dashboard | Maintainer | Notes |
-|-----------|-----------|------------|-------|
-| Canadaverse | [dash.mt.gt](https://dash.mt.gt) (guest/guest) | [@tb0hdan](https://github.com/tb0hdan) | Production deployment |
-| *Your community here* | — | — | [Add yours →](https://github.com/tcivie/meshtastic-metrics-exporter/pulls) |
+- [Quick start](#-quick-start)
+- [Architecture](#-architecture)
+- [Database schema](#-database-schema)
+- [Dashboards](#-dashboards)
+- [Configuration](#-configuration)
+- [Community showcases](#-community-showcases)
+- [Contributing](#-contributing)
+- [License](#-license)
 
-### Feature Requests & Ideas
+---
 
-Got ideas for new metrics, dashboards, or integrations? Open an [issue](https://github.com/tcivie/meshtastic-metrics-exporter/issues) tagged with `enhancement`. Seeing what different communities actually need is the best way to prioritize development.
+## 🚀 Quick start
 
-### Spread the Word
+```bash
+git clone https://github.com/tcivie/meshtastic-metrics-exporter.git
+cd meshtastic-metrics-exporter
+cp .env.example .env       # adjust MQTT credentials, etc.
+docker compose up -d
+```
 
-If this project is useful to your mesh network, share it with other communities. The more diverse the deployments, the better the project gets for everyone.
+Open Grafana at http://localhost:3000 (login `admin` / `admin`). The home page is **Mesh — Network Overview**.
 
-## Deployment
+> **Recommendation:** allow 24 hours of data collection before expecting meaningful insights — many panels become populated only once telemetry, neighbor info, and map reports start arriving.
 
-### Recommended Hosting
+---
 
-For affordable and reliable hosting, I personally use [Hetzner Cloud](https://hetzner.cloud/?ref=iMFSvXv8FFMJ) for running this project. Their VPS offerings provide excellent performance for TimescaleDB and Grafana workloads at competitive prices.
+## 🏗️ Architecture
 
-*Note: This is a referral link - using it supports the project at no extra cost to you. Plus you should get free 20$ for use*
+```
+                   ┌────────────┐
+                   │   MQTT     │
+                   │  Broker    │
+                   └─────┬──────┘
+                         │ envelopes
+                         ▼
+   ┌──────────────────────────────────────────────┐
+   │  Exporter (Python)                           │
+   │  ─ subscribes to mesh topics                 │
+   │  ─ decrypts default-key packets              │
+   │  ─ parses protobufs                          │
+   │  ─ writes hypertable rows                    │
+   └─────┬─────────────────────────────────┬──────┘
+         │                                 │
+         ▼                                 ▼
+   ┌────────────┐                    ┌──────────┐
+   │ TimescaleDB │ ◀───── reads ──── │ Grafana  │
+   │ (Postgres) │                    │ (5 dash) │
+   └────────────┘                    └──────────┘
+```
 
-### Database Structure
+Three containers (`exporter`, `timescaledb`, `grafana`) are orchestrated by a single `docker-compose.yml`.
 
-The system uses PostgreSQL with TimescaleDB extension:
+For affordable hosting I personally use [Hetzner Cloud](https://hetzner.cloud/?ref=iMFSvXv8FFMJ) — VPS plans suit TimescaleDB + Grafana well. *(Referral link: supports the project at no extra cost; gets you €20 to start.)*
 
-#### Regular Tables
+---
 
-1. **messages** - Deduplication table with auto-expiry
-2. **node_details** - Node information (ID, names, hardware, location, MQTT status)
-3. **node_neighbors** - Network topology from NeighborInfo packets
-4. **node_configurations** - Module configurations and update intervals
+## 🗄️ Database schema
 
-#### TimescaleDB Hypertables (Time-Series Data)
+### Regular tables
 
-1. **device_metrics** - Battery, voltage, channel utilization, uptime
-2. **environment_metrics** - Temperature, humidity, pressure, air quality sensors
-3. **air_quality_metrics** - Particulate matter measurements
-4. **power_metrics** - Multi-channel voltage/current measurements
-5. **pax_counter_metrics** - WiFi and BLE device counts
-6. **mesh_packet_metrics** - Packet routing and network statistics
+| Table | Purpose |
+|-------|---------|
+| `messages` | Dedup TTL, cleared by a TimescaleDB scheduled job |
+| `node_details` | Latest known state per node (names, hardware, role, last position, MQTT status, firmware/region/preset) |
+| `node_neighbors` | Topology edges from `NEIGHBORINFO_APP` (rare on the public mesh) |
+| `node_configurations` | Inferred reporting cadence per metric family — refreshed every 10 minutes |
 
-All hypertables have:
-- Automatic 30-day retention policies
-- Indexes optimized for time-series queries
-- Continuous aggregation support
+### Hypertables (1-day chunks · 14-day compression · 30-day retention)
 
-### Grafana Dashboards
+| Hypertable | What's in it |
+|------------|--------------|
+| `device_metrics` | Battery, voltage, channel utilization, airtime, uptime |
+| `environment_metrics` | Temperature, humidity, pressure, gas, IAQ, light, wind, weight |
+| `air_quality_metrics` | Particulate matter (PM1.0/2.5/10) standard + environmental |
+| `power_metrics` | Per-channel voltage / current (3 channels) |
+| `pax_counter_metrics` | WiFi station + BLE beacon counts, PAX uptime |
+| `mesh_packet_metrics` | Per-packet metadata (portnum, channel, SNR, RSSI, hop start/limit, priority, size) |
+| `local_stats` | Node-side packet counters (TX/RX/bad/dupe/relay) and observed mesh size |
+| `node_position_metrics` | Position history with GPS quality (sats, HDOP, ground speed) |
 
-The project includes several pre-configured dashboards:
+All hypertables are columnstore-compressed (`segmentby = node_id` / `source_id`, `orderby = time DESC`).
 
-#### Main Dashboard
-<img width="1470" alt="image" src="https://github.com/user-attachments/assets/09fe72e5-23eb-4516-9f34-19e2cc38b7dc">
+---
 
-Shows network overview, active nodes, packet statistics, and channel utilization.
+## 📊 Dashboards
 
-**Note:** Dashboard links target `localhost:3000`. Update panel configurations to match your Grafana server address.
+Five linked dashboards. Click the **Mesh dashboards** dropdown in the top-left of any page to switch, or click any `node_id` cell, map marker, or topology node to drill in.
 
-#### Node Dashboard
-![image](https://github.com/user-attachments/assets/d344b7dd-dadc-4cbe-84cc-44333ea6e0c4)
+| Dashboard | UID | Purpose |
+|-----------|-----|---------|
+| **Mesh — Network Overview** | `mesh-overview` | Landing page; mesh health tiles + global activity (Grafana home) |
+| **Mesh — Node Detail** | `mesh-node-detail` | Per-node deep dive — pick a node from the dropdown or land here from a drill-down |
+| **Mesh — Network Map** | `mesh-network-map` | Geographic positions + topology graph |
+| **Mesh — PAX Counters** | `mesh-pax` | PAX-counter telemetry (WiFi / BLE device counts) |
+| **Mesh — Investigation** | `mesh-investigation` | Raw tables, color-coded SNR / RSSI / hops, fleet composition |
 
-Detailed view per node with telemetry, battery metrics, and configuration details.
+> Dashboard links target `localhost:3000`. Update panel link configurations to match your Grafana server address if hosting elsewhere.
 
-#### Network Graph
-<img width="585" alt="SCR-20240707-qjaj" src="https://github.com/tcivie/meshtastic-metrics-exporter/assets/87943721/d29b2ac4-6291-4095-9938-e6e63df15098">
+<details>
+<summary><b>🌐 Mesh — Network Overview</b> · click to expand screenshots</summary>
 
-Visualizes mesh topology from NeighborInfo packets with SNR-based coloring:
-- **Green nodes**: Connected to MQTT
-- **Red nodes**: Disconnected from MQTT  
-- **Gray nodes**: Unknown status (never connected)
-- **Line colors**: Signal strength (SNR)
+The lobby of the dashboard set: mesh health tiles up top (each clickable to drill into a detail dashboard), global activity, top channel utilizers, then a directory of the most active nodes.
 
-**Recommendation:** Allow 24 hours for data collection before expecting meaningful insights.
+<p align="center">
+  <img src="docs/screenshots/network-overview-top.png" alt="Network Overview — health tiles, activity, mesh quality" width="100%" />
+</p>
 
-## Configuration
+Scroll down: most active nodes table (every `node_id` is a drill-down link) and fleet composition pies (hardware models, roles, modem preset).
 
-Configure the exporter using a `.env` file:
+<p align="center">
+  <img src="docs/screenshots/network-overview-bottom.png" alt="Network Overview — most active nodes & fleet composition" width="100%" />
+</p>
+
+</details>
+
+<details>
+<summary><b>📍 Mesh — Node Detail</b> · click to expand screenshots</summary>
+
+Header + location map up top, then traffic / telemetry / environment / power sections, finishing with a per-node topology graph and a Connections table.
+
+<p align="center">
+  <img src="docs/screenshots/node-detail-top.png" alt="Node Detail — header, location, traffic, telemetry" width="100%" />
+</p>
+
+Per-node topology graph (this node in blue, peers in gray, edges colored by SNR) plus a sortable Connections table — every peer `node_id` links to its own Node Detail page.
+
+<p align="center">
+  <img src="docs/screenshots/node-detail-topology.png" alt="Node Detail — topology + connections" width="100%" />
+</p>
+
+</details>
+
+<details>
+<summary><b>🗺️ Mesh — Network Map</b> · click to expand screenshots</summary>
+
+Geographic markers for every node that has broadcast a Position or MapReport. Below: the full mesh topology derived from the last hour of unicast traffic. Markers and topology nodes both carry a click-through link to the per-node detail page.
+
+<p align="center">
+  <img src="docs/screenshots/network-map.png" alt="Network Map — geomap + topology graph" width="100%" />
+</p>
+
+- **Marker color** — green = node has been seen recently
+- **Topology edge color** — green ≥ -7 dB · yellow -13 to -7 dB · red < -13 dB
+- **Topology edge thickness** — log-scaled packet count
+
+</details>
+
+<details>
+<summary><b>🔬 Mesh — Investigation</b> · click to expand screenshots</summary>
+
+Raw debugging surface. Recent packets table color-codes `rx_snr` / `rx_rssi` / `hop_start` / `bytes` so problems jump out; both `node_id` and `destination_id` cells link into Node Detail.
+
+<p align="center">
+  <img src="docs/screenshots/investigation-recent.png" alt="Investigation — recent packets & traffic breakdown" width="100%" />
+</p>
+
+Below: signal quality + hop usage tables, fleet composition pies, and inferred reporting intervals per metric family (refreshed every 10 minutes by a TimescaleDB scheduled job).
+
+<p align="center">
+  <img src="docs/screenshots/investigation-quality.png" alt="Investigation — signal quality, fleet, reporting intervals" width="100%" />
+</p>
+
+</details>
+
+---
+
+## ⚙️ Configuration
+
+Configure the exporter via `.env` at the repo root:
+
 ```dotenv
 # TimescaleDB connection
 DATABASE_URL=postgres://postgres:postgres@timescaledb:5432/meshtastic
 
-# MQTT connection
+# MQTT connection (defaults are the public Meshtastic broker)
 MQTT_HOST=mqtt.meshtastic.org
 MQTT_PORT=1883
 MQTT_USERNAME=meshdev
@@ -109,7 +212,7 @@ MQTT_KEEPALIVE=60
 MQTT_TOPIC='msh/US/#'
 MQTT_IS_TLS=false
 
-# MQTT protocol version (MQTTv311 for public server)
+# MQTT protocol version (MQTTv311 for the public broker)
 # Options: MQTTv311, MQTTv31, MQTTv5
 MQTT_PROTOCOL=MQTTv311
 
@@ -117,53 +220,70 @@ MQTT_PROTOCOL=MQTTv311
 # Options: VERSION1, VERSION2
 MQTT_CALLBACK_API_VERSION=VERSION2
 
-# Exporter configuration
+# Privacy
 MESH_HIDE_SOURCE_DATA=false
 MESH_HIDE_DESTINATION_DATA=false
+
+# Default channel key — only packets sent on the default channel are decryptable
 MQTT_SERVER_KEY=1PG7OiApB1nwvP+rz05pAQ==
 
-# Message types to filter (comma-separated)
+# Comma-separated list of portnums whose payload should be skipped
+# (mesh_packet_metrics still records the envelope, only the payload processor is filtered)
 # Full list: https://buf.build/meshtastic/protobufs/docs/main:meshtastic#meshtastic.PortNum
 EXPORTER_MESSAGE_TYPES_TO_FILTER=TEXT_MESSAGE_APP
 
-# Enable node configurations report
-REPORT_NODE_CONFIGURATIONS=true
-
-# Logging configuration
+# Logging
 ENABLE_STREAM_HANDLER=true
 LOG_LEVEL=INFO
 LOG_FILE_MAX_SIZE=10MB
 LOG_FILE_BACKUP_COUNT=5
 ```
 
-## Running the Project
+Run:
 
-Start all services with Docker Compose:
 ```bash
 docker compose up -d
 ```
 
-This starts:
-- **Exporter**: Python service processing MQTT messages
-- **TimescaleDB**: PostgreSQL with TimescaleDB extension
-- **Grafana**: Visualization platform (accessible at `http://localhost:3000`)
+starts:
 
-## Architecture
+- **exporter** — the Python service consuming MQTT and writing to TimescaleDB
+- **timescaledb** — Postgres 16 + TimescaleDB extension; schema is created idempotently on first init
+- **grafana** — Grafana 13 with the five dashboards provisioned and Network Overview pinned as home
+
+---
+
+## 🌍 Community showcases
+
+Running this exporter for your local mesh community? We'd love to hear about it.
+
+If you have a public dashboard or an interesting deployment, open a [discussion](https://github.com/tcivie/meshtastic-metrics-exporter/discussions) or submit a PR adding your instance to the table below. Share what you're monitoring, how you've customized things, or what features you wish existed — it all helps shape where this project goes next.
+
+| Community | Dashboard | Maintainer | Notes |
+|-----------|-----------|------------|-------|
+| Canadaverse | [dash.mt.gt](https://dash.mt.gt) (guest/guest) | [@tb0hdan](https://github.com/tb0hdan) | Production deployment |
+| *Your community here* | — | — | [Add yours →](https://github.com/tcivie/meshtastic-metrics-exporter/pulls) |
+
+### Feature requests & ideas
+
+Got ideas for new metrics, dashboards, or integrations? Open an [issue](https://github.com/tcivie/meshtastic-metrics-exporter/issues) tagged `enhancement`. Seeing what different communities actually need is the best way to prioritise development.
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome — open an issue or submit a pull request. The dashboard JSON is generated by `scripts/build_dashboards.py`, so panel changes should land there rather than as hand edits to the generated files.
+
+Run the test suite locally:
+
+```bash
+pip install -r requirements.txt pytest
+python scripts/build_dashboards.py
+pytest tests/
 ```
-MQTT Server → Exporter (Python) → TimescaleDB → Grafana
-```
 
-The exporter:
-1. Subscribes to Meshtastic MQTT topics
-2. Decrypts encrypted packets (if key provided)
-3. Parses Protocol Buffer messages
-4. Stores metrics in TimescaleDB hypertables
-5. Updates node details and topology in PostgreSQL tables
+---
 
-## Contributing
+## 📜 License
 
-Contributions are welcome! Please open an issue or submit a pull request on GitHub.
-
-## License
-
-This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
+GPL v3 — see [LICENSE](LICENSE).

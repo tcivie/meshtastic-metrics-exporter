@@ -93,10 +93,36 @@ POWER_METRIC_FIELDS = (
     "ch3_voltage",
     "ch3_current",
 )
+LOCAL_STATS_FIELDS = (
+    "num_packets_tx",
+    "num_packets_rx",
+    "num_packets_rx_bad",
+    "num_online_nodes",
+    "num_total_nodes",
+    "num_rx_dupe",
+    "num_tx_relay",
+    "num_tx_relay_canceled",
+)
+# Overlap fields shared between LocalStats and DeviceMetrics.  When a
+# packet carries the local_stats variant we copy these into
+# device_metrics so charts have a single source of truth.
+LOCAL_STATS_TO_DEVICE_FIELDS = (
+    "uptime_seconds",
+    "channel_utilization",
+    "air_util_tx",
+)
 
 
 def _to_dict(message, fields: Iterable[str]) -> dict:
     return {f: getattr(message, f, 0) for f in fields}
+
+
+def _enum_name(message_cls, field_name: str, value: int) -> str | None:
+    field = message_cls.DESCRIPTOR.fields_by_name.get(field_name)
+    if field is None or field.enum_type is None:
+        return None
+    val = field.enum_type.values_by_number.get(int(value))
+    return val.name if val is not None else None
 
 
 def _safe_parse(payload: bytes, message_cls, label: str):
@@ -209,6 +235,22 @@ class PositionAppProcessor(Processor):
 
         self.db_handler.execute_db_operation(db_op)
 
+        self.db_handler.store_node_position(
+            client_details.node_id,
+            {
+                "latitude": position.latitude_i,
+                "longitude": position.longitude_i,
+                "altitude": getattr(position, "altitude", 0),
+                "sats_in_view": getattr(position, "sats_in_view", 0),
+                "ground_speed": getattr(position, "ground_speed", 0),
+                "ground_track": getattr(position, "ground_track", 0),
+                "pdop": getattr(position, "PDOP", 0),
+                "hdop": getattr(position, "HDOP", 0),
+                "vdop": getattr(position, "VDOP", 0),
+                "precision_bits": getattr(position, "precision_bits", 0),
+            },
+        )
+
 
 @ProcessorRegistry.register_processor(PortNum.NODEINFO_APP)
 class NodeInfoAppProcessor(Processor):
@@ -294,6 +336,7 @@ class TelemetryAppProcessor(Processor):
         ("environment_metrics", ENVIRONMENT_METRIC_FIELDS, "store_environment_metrics"),
         ("air_quality_metrics", AIR_QUALITY_METRIC_FIELDS, "store_air_quality_metrics"),
         ("power_metrics", POWER_METRIC_FIELDS, "store_power_metrics"),
+        ("local_stats", LOCAL_STATS_FIELDS, "store_local_stats"),
     )
 
     def process(self, payload: bytes, client_details: ClientDetails):
@@ -306,6 +349,15 @@ class TelemetryAppProcessor(Processor):
                     client_details.node_id,
                     _to_dict(getattr(telemetry, field), columns),
                 )
+        # local_stats and device_metrics share three columns (uptime,
+        # ChUtil, AirUtilTX). When a packet carries local_stats, mirror
+        # those columns into device_metrics so charts only ever read one
+        # table for those values.
+        if telemetry.HasField("local_stats"):
+            self.db_handler.store_device_metrics(
+                client_details.node_id,
+                _to_dict(telemetry.local_stats, LOCAL_STATS_TO_DEVICE_FIELDS),
+            )
 
 
 @ProcessorRegistry.register_processor(PortNum.NEIGHBORINFO_APP)
@@ -367,6 +419,11 @@ class MapReportAppProcessor(Processor):
         if map_report is None:
             return
 
+        region = _enum_name(MapReport, "region", getattr(map_report, "region", 0))
+        modem_preset = _enum_name(
+            MapReport, "modem_preset", getattr(map_report, "modem_preset", 0)
+        )
+
         row = (
             client_details.node_id,
             getattr(map_report, "short_name", "") or "Unknown",
@@ -379,6 +436,11 @@ class MapReportAppProcessor(Processor):
             getattr(map_report, "longitude_i", 0),
             getattr(map_report, "altitude", 0),
             getattr(map_report, "position_precision", 0),
+            getattr(map_report, "firmware_version", "") or None,
+            region,
+            modem_preset,
+            bool(getattr(map_report, "has_default_channel", False)),
+            int(getattr(map_report, "num_online_local_nodes", 0) or 0),
             datetime.now(),
         )
 
@@ -387,18 +449,25 @@ class MapReportAppProcessor(Processor):
                 """
                 INSERT INTO node_details (
                     node_id, short_name, long_name, hardware_model, role,
-                    latitude, longitude, altitude, precision, updated_at
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    latitude, longitude, altitude, precision,
+                    firmware_version, region, modem_preset,
+                    has_default_channel, num_online_local, updated_at
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (node_id) DO UPDATE SET
-                    short_name = EXCLUDED.short_name,
-                    long_name = EXCLUDED.long_name,
-                    hardware_model = EXCLUDED.hardware_model,
-                    role = EXCLUDED.role,
-                    latitude = EXCLUDED.latitude,
-                    longitude = EXCLUDED.longitude,
-                    altitude = EXCLUDED.altitude,
-                    precision = EXCLUDED.precision,
-                    updated_at = EXCLUDED.updated_at
+                    short_name          = EXCLUDED.short_name,
+                    long_name           = EXCLUDED.long_name,
+                    hardware_model      = EXCLUDED.hardware_model,
+                    role                = EXCLUDED.role,
+                    latitude            = EXCLUDED.latitude,
+                    longitude           = EXCLUDED.longitude,
+                    altitude            = EXCLUDED.altitude,
+                    precision           = EXCLUDED.precision,
+                    firmware_version    = EXCLUDED.firmware_version,
+                    region              = EXCLUDED.region,
+                    modem_preset        = EXCLUDED.modem_preset,
+                    has_default_channel = EXCLUDED.has_default_channel,
+                    num_online_local    = EXCLUDED.num_online_local,
+                    updated_at          = EXCLUDED.updated_at
                 """,
                 row,
             )

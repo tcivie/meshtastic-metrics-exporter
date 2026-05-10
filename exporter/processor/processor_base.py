@@ -55,6 +55,13 @@ class MessageProcessor:
             port_num = int(mesh_packet.decoded.portnum)
             payload = mesh_packet.decoded.payload
 
+            # UNKNOWN_APP (port 0) with empty payload is almost always a
+            # garbage decrypt of a packet we don't have the channel key for.
+            # Real UNKNOWN_APP packets carry a payload; skip the rest so
+            # they don't dominate the metrics.
+            if port_num == PortNum.UNKNOWN_APP and not payload:
+                return
+
             source = self._client_details_for(
                 getattr(mesh_packet, "from"), "MESH_HIDE_SOURCE_DATA"
             )
@@ -135,6 +142,8 @@ class MessageProcessor:
                 "want_ack": mesh_packet.want_ack,
                 "via_mqtt": mesh_packet.via_mqtt,
                 "message_size_bytes": mesh_packet.ByteSize(),
+                "priority": int(getattr(mesh_packet, "priority", 0) or 0),
+                "pki_encrypted": bool(getattr(mesh_packet, "pki_encrypted", False)),
             },
         )
 

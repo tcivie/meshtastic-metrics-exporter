@@ -18,19 +18,30 @@ CREATE EXTENSION IF NOT EXISTS timescaledb;
 
 CREATE TABLE IF NOT EXISTS node_details
 (
-    node_id        VARCHAR PRIMARY KEY,
-    short_name     VARCHAR,
-    long_name      VARCHAR,
-    hardware_model VARCHAR,
-    role           VARCHAR,
-    mqtt_status    VARCHAR   DEFAULT 'none',
-    longitude      INT,
-    latitude       INT,
-    altitude       INT,
-    precision      INT,
-    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+    node_id              VARCHAR PRIMARY KEY,
+    short_name           VARCHAR,
+    long_name            VARCHAR,
+    hardware_model       VARCHAR,
+    role                 VARCHAR,
+    mqtt_status          VARCHAR   DEFAULT 'none',
+    longitude            INT,
+    latitude             INT,
+    altitude             INT,
+    precision            INT,
+    firmware_version     VARCHAR,
+    region               VARCHAR,
+    modem_preset         VARCHAR,
+    has_default_channel  BOOLEAN,
+    num_online_local     INT,
+    created_at           TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at           TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
+
+ALTER TABLE node_details ADD COLUMN IF NOT EXISTS firmware_version    VARCHAR;
+ALTER TABLE node_details ADD COLUMN IF NOT EXISTS region              VARCHAR;
+ALTER TABLE node_details ADD COLUMN IF NOT EXISTS modem_preset        VARCHAR;
+ALTER TABLE node_details ADD COLUMN IF NOT EXISTS has_default_channel BOOLEAN;
+ALTER TABLE node_details ADD COLUMN IF NOT EXISTS num_online_local    INT;
 
 CREATE TABLE IF NOT EXISTS node_neighbors
 (
@@ -184,27 +195,72 @@ CREATE TABLE IF NOT EXISTS mesh_packet_metrics
     hop_start          INT,
     want_ack           BOOLEAN,
     via_mqtt           BOOLEAN,
-    message_size_bytes INT
+    message_size_bytes INT,
+    priority           INT,
+    pki_encrypted      BOOLEAN
+);
+
+ALTER TABLE mesh_packet_metrics ADD COLUMN IF NOT EXISTS priority      INT;
+ALTER TABLE mesh_packet_metrics ADD COLUMN IF NOT EXISTS pki_encrypted BOOLEAN;
+
+-- LocalStats holds packet-counter fields that no other telemetry variant
+-- carries.  Overlap fields (uptime_seconds / channel_utilization /
+-- air_util_tx) are written to device_metrics so charts have one source of
+-- truth regardless of which telemetry variant a node sent.
+CREATE TABLE IF NOT EXISTS local_stats
+(
+    time                  TIMESTAMPTZ NOT NULL,
+    node_id               VARCHAR     NOT NULL,
+    num_packets_tx        BIGINT,
+    num_packets_rx        BIGINT,
+    num_packets_rx_bad    BIGINT,
+    num_online_nodes      INT,
+    num_total_nodes       INT,
+    num_rx_dupe           BIGINT,
+    num_tx_relay          BIGINT,
+    num_tx_relay_canceled BIGINT
+);
+
+-- Position history. lat/lon stored as int×1e7 (firmware-native format)
+-- to match node_details — dashboards apply `* 1e-7` at query time.
+CREATE TABLE IF NOT EXISTS node_position_metrics
+(
+    time            TIMESTAMPTZ NOT NULL,
+    node_id         VARCHAR     NOT NULL,
+    latitude        INT,
+    longitude       INT,
+    altitude        INT,
+    sats_in_view    INT,
+    ground_speed    INT,
+    ground_track    INT,
+    pdop            INT,
+    hdop            INT,
+    vdop            INT,
+    precision_bits  INT
 );
 
 -- Convert each metric table to a hypertable. `if_not_exists => true` makes
 -- this a no-op when re-run.  Chunk interval is 1 day — mesh-radio data is
 -- low volume; bigger chunks would waste memory on indexes.
-SELECT create_hypertable('device_metrics',     'time', chunk_time_interval => INTERVAL '1 day', if_not_exists => true);
-SELECT create_hypertable('environment_metrics','time', chunk_time_interval => INTERVAL '1 day', if_not_exists => true);
-SELECT create_hypertable('air_quality_metrics','time', chunk_time_interval => INTERVAL '1 day', if_not_exists => true);
-SELECT create_hypertable('power_metrics',      'time', chunk_time_interval => INTERVAL '1 day', if_not_exists => true);
-SELECT create_hypertable('pax_counter_metrics','time', chunk_time_interval => INTERVAL '1 day', if_not_exists => true);
-SELECT create_hypertable('mesh_packet_metrics','time', chunk_time_interval => INTERVAL '1 day', if_not_exists => true);
+SELECT create_hypertable('device_metrics',       'time', chunk_time_interval => INTERVAL '1 day', if_not_exists => true);
+SELECT create_hypertable('environment_metrics',  'time', chunk_time_interval => INTERVAL '1 day', if_not_exists => true);
+SELECT create_hypertable('air_quality_metrics',  'time', chunk_time_interval => INTERVAL '1 day', if_not_exists => true);
+SELECT create_hypertable('power_metrics',        'time', chunk_time_interval => INTERVAL '1 day', if_not_exists => true);
+SELECT create_hypertable('pax_counter_metrics',  'time', chunk_time_interval => INTERVAL '1 day', if_not_exists => true);
+SELECT create_hypertable('mesh_packet_metrics',  'time', chunk_time_interval => INTERVAL '1 day', if_not_exists => true);
+SELECT create_hypertable('local_stats',          'time', chunk_time_interval => INTERVAL '1 day', if_not_exists => true);
+SELECT create_hypertable('node_position_metrics','time', chunk_time_interval => INTERVAL '1 day', if_not_exists => true);
 
-CREATE INDEX IF NOT EXISTS idx_device_metrics_node_id      ON device_metrics      (node_id, time DESC);
-CREATE INDEX IF NOT EXISTS idx_environment_metrics_node_id ON environment_metrics (node_id, time DESC);
-CREATE INDEX IF NOT EXISTS idx_air_quality_metrics_node_id ON air_quality_metrics (node_id, time DESC);
-CREATE INDEX IF NOT EXISTS idx_power_metrics_node_id       ON power_metrics       (node_id, time DESC);
-CREATE INDEX IF NOT EXISTS idx_pax_counter_metrics_node_id ON pax_counter_metrics (node_id, time DESC);
-CREATE INDEX IF NOT EXISTS idx_mesh_packet_metrics_source  ON mesh_packet_metrics (source_id, time DESC);
-CREATE INDEX IF NOT EXISTS idx_mesh_packet_metrics_dest    ON mesh_packet_metrics (destination_id, time DESC);
-CREATE INDEX IF NOT EXISTS idx_mesh_packet_metrics_portnum ON mesh_packet_metrics (portnum, time DESC);
+CREATE INDEX IF NOT EXISTS idx_device_metrics_node_id        ON device_metrics        (node_id, time DESC);
+CREATE INDEX IF NOT EXISTS idx_environment_metrics_node_id   ON environment_metrics   (node_id, time DESC);
+CREATE INDEX IF NOT EXISTS idx_air_quality_metrics_node_id   ON air_quality_metrics   (node_id, time DESC);
+CREATE INDEX IF NOT EXISTS idx_power_metrics_node_id         ON power_metrics         (node_id, time DESC);
+CREATE INDEX IF NOT EXISTS idx_pax_counter_metrics_node_id   ON pax_counter_metrics   (node_id, time DESC);
+CREATE INDEX IF NOT EXISTS idx_mesh_packet_metrics_source    ON mesh_packet_metrics   (source_id, time DESC);
+CREATE INDEX IF NOT EXISTS idx_mesh_packet_metrics_dest      ON mesh_packet_metrics   (destination_id, time DESC);
+CREATE INDEX IF NOT EXISTS idx_mesh_packet_metrics_portnum   ON mesh_packet_metrics   (portnum, time DESC);
+CREATE INDEX IF NOT EXISTS idx_local_stats_node_id           ON local_stats           (node_id, time DESC);
+CREATE INDEX IF NOT EXISTS idx_node_position_metrics_node_id ON node_position_metrics (node_id, time DESC);
 
 -- ---------------------------------------------------------------------------
 -- Columnstore (compression).  Segment by the entity each query filters on
@@ -213,32 +269,38 @@ CREATE INDEX IF NOT EXISTS idx_mesh_packet_metrics_portnum ON mesh_packet_metric
 -- older than 30 days get dropped by the retention policy below.
 -- ---------------------------------------------------------------------------
 
-ALTER TABLE device_metrics      SET (timescaledb.enable_columnstore = true, timescaledb.segmentby = 'node_id',     timescaledb.orderby = 'time DESC');
-ALTER TABLE environment_metrics SET (timescaledb.enable_columnstore = true, timescaledb.segmentby = 'node_id',     timescaledb.orderby = 'time DESC');
-ALTER TABLE air_quality_metrics SET (timescaledb.enable_columnstore = true, timescaledb.segmentby = 'node_id',     timescaledb.orderby = 'time DESC');
-ALTER TABLE power_metrics       SET (timescaledb.enable_columnstore = true, timescaledb.segmentby = 'node_id',     timescaledb.orderby = 'time DESC');
-ALTER TABLE pax_counter_metrics SET (timescaledb.enable_columnstore = true, timescaledb.segmentby = 'node_id',     timescaledb.orderby = 'time DESC');
-ALTER TABLE mesh_packet_metrics SET (timescaledb.enable_columnstore = true, timescaledb.segmentby = 'source_id',   timescaledb.orderby = 'time DESC');
+ALTER TABLE device_metrics        SET (timescaledb.enable_columnstore = true, timescaledb.segmentby = 'node_id',   timescaledb.orderby = 'time DESC');
+ALTER TABLE environment_metrics   SET (timescaledb.enable_columnstore = true, timescaledb.segmentby = 'node_id',   timescaledb.orderby = 'time DESC');
+ALTER TABLE air_quality_metrics   SET (timescaledb.enable_columnstore = true, timescaledb.segmentby = 'node_id',   timescaledb.orderby = 'time DESC');
+ALTER TABLE power_metrics         SET (timescaledb.enable_columnstore = true, timescaledb.segmentby = 'node_id',   timescaledb.orderby = 'time DESC');
+ALTER TABLE pax_counter_metrics   SET (timescaledb.enable_columnstore = true, timescaledb.segmentby = 'node_id',   timescaledb.orderby = 'time DESC');
+ALTER TABLE mesh_packet_metrics   SET (timescaledb.enable_columnstore = true, timescaledb.segmentby = 'source_id', timescaledb.orderby = 'time DESC');
+ALTER TABLE local_stats           SET (timescaledb.enable_columnstore = true, timescaledb.segmentby = 'node_id',   timescaledb.orderby = 'time DESC');
+ALTER TABLE node_position_metrics SET (timescaledb.enable_columnstore = true, timescaledb.segmentby = 'node_id',   timescaledb.orderby = 'time DESC');
 
 -- Columnstore (compression) policies. `add_columnstore_policy` is a
 -- procedure, so it must be CALLed at the top level — table name has to be
 -- a literal regclass, hence the unrolled list.  `if_not_exists => true`
 -- makes re-runs a no-op.
-CALL add_columnstore_policy('device_metrics',      after => INTERVAL '14 days', if_not_exists => true);
-CALL add_columnstore_policy('environment_metrics', after => INTERVAL '14 days', if_not_exists => true);
-CALL add_columnstore_policy('air_quality_metrics', after => INTERVAL '14 days', if_not_exists => true);
-CALL add_columnstore_policy('power_metrics',       after => INTERVAL '14 days', if_not_exists => true);
-CALL add_columnstore_policy('pax_counter_metrics', after => INTERVAL '14 days', if_not_exists => true);
-CALL add_columnstore_policy('mesh_packet_metrics', after => INTERVAL '14 days', if_not_exists => true);
+CALL add_columnstore_policy('device_metrics',        after => INTERVAL '14 days', if_not_exists => true);
+CALL add_columnstore_policy('environment_metrics',   after => INTERVAL '14 days', if_not_exists => true);
+CALL add_columnstore_policy('air_quality_metrics',   after => INTERVAL '14 days', if_not_exists => true);
+CALL add_columnstore_policy('power_metrics',         after => INTERVAL '14 days', if_not_exists => true);
+CALL add_columnstore_policy('pax_counter_metrics',   after => INTERVAL '14 days', if_not_exists => true);
+CALL add_columnstore_policy('mesh_packet_metrics',   after => INTERVAL '14 days', if_not_exists => true);
+CALL add_columnstore_policy('local_stats',           after => INTERVAL '14 days', if_not_exists => true);
+CALL add_columnstore_policy('node_position_metrics', after => INTERVAL '14 days', if_not_exists => true);
 
 -- Retention policies (drop chunks older than 30 days).  Function form
 -- supports `if_not_exists => true` for idempotent re-runs.
-SELECT add_retention_policy('device_metrics',      INTERVAL '30 days', if_not_exists => true);
-SELECT add_retention_policy('environment_metrics', INTERVAL '30 days', if_not_exists => true);
-SELECT add_retention_policy('air_quality_metrics', INTERVAL '30 days', if_not_exists => true);
-SELECT add_retention_policy('power_metrics',       INTERVAL '30 days', if_not_exists => true);
-SELECT add_retention_policy('pax_counter_metrics', INTERVAL '30 days', if_not_exists => true);
-SELECT add_retention_policy('mesh_packet_metrics', INTERVAL '30 days', if_not_exists => true);
+SELECT add_retention_policy('device_metrics',        INTERVAL '30 days', if_not_exists => true);
+SELECT add_retention_policy('environment_metrics',   INTERVAL '30 days', if_not_exists => true);
+SELECT add_retention_policy('air_quality_metrics',   INTERVAL '30 days', if_not_exists => true);
+SELECT add_retention_policy('power_metrics',         INTERVAL '30 days', if_not_exists => true);
+SELECT add_retention_policy('pax_counter_metrics',   INTERVAL '30 days', if_not_exists => true);
+SELECT add_retention_policy('mesh_packet_metrics',   INTERVAL '30 days', if_not_exists => true);
+SELECT add_retention_policy('local_stats',           INTERVAL '30 days', if_not_exists => true);
+SELECT add_retention_policy('node_position_metrics', INTERVAL '30 days', if_not_exists => true);
 
 -- ---------------------------------------------------------------------------
 -- node_configurations maintenance
@@ -366,8 +428,8 @@ DO $$
 BEGIN
     PERFORM add_job(
         proc => 'refresh_node_configurations_job',
-        schedule_interval => INTERVAL '1 hour',
-        job_name => 'refresh_node_configurations_hourly'
+        schedule_interval => INTERVAL '10 minutes',
+        job_name => 'refresh_node_configurations'
     );
 EXCEPTION WHEN OTHERS THEN
     RAISE NOTICE 'refresh_node_configurations job: %', SQLERRM;
