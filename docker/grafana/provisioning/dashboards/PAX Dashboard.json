@@ -23,9 +23,8 @@
   "panels": [
     {
       "datasource": {
-        "default": false,
-        "type": "datasource",
-        "uid": "-- Mixed --"
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
       },
       "description": "Displays nodes on the map and the number of devices around this node",
       "fieldConfig": {
@@ -152,7 +151,7 @@
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "SELECT \n    *,\n    EXTRACT(EPOCH FROM now() - updated_at) as age_seconds\nFROM node_details \nWHERE longitude != 0 \nAND longitude IS NOT NULL\nAND node_id IN ($Nodes) ",
+          "rawSql": "SELECT \n    *,\n    EXTRACT(EPOCH FROM now() - updated_at) as age_seconds\nFROM node_details \nWHERE longitude != 0 \nAND longitude IS NOT NULL\nAND node_id IN (${Nodes:singlequote}) ",
           "refId": "Nodes",
           "sql": {
             "columns": [
@@ -174,41 +173,37 @@
         },
         {
           "datasource": {
-            "type": "prometheus",
+            "type": "grafana-postgresql-datasource",
             "uid": "PA942B37CCFAF5A81"
           },
           "disableTextWrap": false,
-          "editorMode": "builder",
+          "editorMode": "code",
           "exemplar": false,
-          "expr": "pax_ble{node_id=~\"$Nodes\"}",
           "format": "table",
           "fullMetaSearch": false,
           "hide": false,
           "includeNullMetadata": true,
-          "instant": true,
-          "legendFormat": "{{node_id}}",
-          "range": false,
           "refId": "Bluetooth",
-          "useBackend": false
+          "useBackend": false,
+          "rawQuery": true,
+          "rawSql": "SELECT\n    nd.longitude * 1e-7 AS longitude,\n    nd.latitude  * 1e-7 AS latitude,\n    nd.long_name AS metric,\n    AVG(p.ble_beacons)  AS ble\nFROM pax_counter_metrics p\nJOIN node_details nd ON nd.node_id = p.node_id\nWHERE p.node_id IN (${Nodes:singlequote})\n  AND nd.longitude IS NOT NULL AND nd.longitude <> 0\n  AND $__timeFilter(p.time)\nGROUP BY nd.node_id, nd.longitude, nd.latitude, nd.long_name"
         },
         {
           "datasource": {
-            "type": "prometheus",
+            "type": "grafana-postgresql-datasource",
             "uid": "PA942B37CCFAF5A81"
           },
           "disableTextWrap": false,
-          "editorMode": "builder",
+          "editorMode": "code",
           "exemplar": false,
-          "expr": "pax_wifi{node_id=~\"$Nodes\"}",
           "format": "table",
           "fullMetaSearch": false,
           "hide": false,
           "includeNullMetadata": true,
-          "instant": true,
-          "legendFormat": "{{node_id}}",
-          "range": false,
           "refId": "Wifi",
-          "useBackend": false
+          "useBackend": false,
+          "rawQuery": true,
+          "rawSql": "SELECT\n    nd.longitude * 1e-7 AS longitude,\n    nd.latitude  * 1e-7 AS latitude,\n    nd.long_name AS metric,\n    AVG(p.wifi_stations) AS wifi\nFROM pax_counter_metrics p\nJOIN node_details nd ON nd.node_id = p.node_id\nWHERE p.node_id IN (${Nodes:singlequote})\n  AND nd.longitude IS NOT NULL AND nd.longitude <> 0\n  AND $__timeFilter(p.time)\nGROUP BY nd.node_id, nd.longitude, nd.latitude, nd.long_name"
         }
       ],
       "title": "Nodes map",
@@ -334,8 +329,7 @@
     },
     {
       "datasource": {
-        "default": true,
-        "type": "prometheus",
+        "type": "grafana-postgresql-datasource",
         "uid": "PA942B37CCFAF5A81"
       },
       "fieldConfig": {
@@ -390,20 +384,19 @@
       "targets": [
         {
           "datasource": {
-            "type": "prometheus",
+            "type": "grafana-postgresql-datasource",
             "uid": "PA942B37CCFAF5A81"
           },
           "disableTextWrap": false,
-          "editorMode": "builder",
+          "editorMode": "code",
           "exemplar": false,
-          "expr": "pax_uptime{node_id=~\"$Nodes\"}",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
-          "instant": false,
-          "legendFormat": "{{long_name}}",
-          "range": true,
           "refId": "A",
-          "useBackend": false
+          "useBackend": false,
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(MAX(uptime), 0) AS value\nFROM pax_counter_metrics\nWHERE node_id IN (${Nodes:singlequote})\n  AND $__timeFilter(time)",
+          "format": "table"
         }
       ],
       "title": "PAX Uptime",
@@ -411,9 +404,8 @@
     },
     {
       "datasource": {
-        "default": false,
-        "type": "datasource",
-        "uid": "-- Dashboard --"
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
       },
       "description": "Distribution of number of devices over time",
       "fieldConfig": {
@@ -477,8 +469,8 @@
       "targets": [
         {
           "datasource": {
-            "type": "datasource",
-            "uid": "-- Dashboard --"
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
           },
           "panelId": 2,
           "refId": "A"
@@ -501,9 +493,8 @@
     },
     {
       "datasource": {
-        "default": false,
-        "type": "datasource",
-        "uid": "-- Dashboard --"
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
       },
       "description": "Histogram for nodes and the number of devices they captured",
       "fieldConfig": {
@@ -548,7 +539,7 @@
           "color": "rgba(255,0,255,0.7)"
         },
         "filterValues": {
-          "le": 1e-9
+          "le": 1e-09
         },
         "legend": {
           "show": true
@@ -572,8 +563,8 @@
       "targets": [
         {
           "datasource": {
-            "type": "datasource",
-            "uid": "-- Dashboard --"
+            "type": "grafana-postgresql-datasource",
+            "uid": "PA942B37CCFAF5A81"
           },
           "panelId": 2,
           "refId": "A"
@@ -584,8 +575,7 @@
     },
     {
       "datasource": {
-        "default": true,
-        "type": "prometheus",
+        "type": "grafana-postgresql-datasource",
         "uid": "PA942B37CCFAF5A81"
       },
       "fieldConfig": {
@@ -665,36 +655,34 @@
       "targets": [
         {
           "datasource": {
-            "type": "prometheus",
+            "type": "grafana-postgresql-datasource",
             "uid": "PA942B37CCFAF5A81"
           },
           "disableTextWrap": false,
-          "editorMode": "builder",
-          "expr": "pax_ble{node_id=~\"$Nodes\"}",
+          "editorMode": "code",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
-          "instant": false,
-          "legendFormat": "{{short_name}}-{{node_id}}-Bluetooth",
-          "range": true,
           "refId": "Bluetooth",
-          "useBackend": false
+          "useBackend": false,
+          "rawQuery": true,
+          "rawSql": "SELECT\n    $__timeGroupAlias(time, $__interval),\n    AVG(ble_beacons) AS \"BLE beacons\"\nFROM pax_counter_metrics\nWHERE node_id IN (${Nodes:singlequote})\n  AND $__timeFilter(time)\nGROUP BY 1\nORDER BY 1",
+          "format": "time_series"
         },
         {
           "datasource": {
-            "type": "prometheus",
+            "type": "grafana-postgresql-datasource",
             "uid": "PA942B37CCFAF5A81"
           },
           "disableTextWrap": false,
-          "editorMode": "builder",
-          "expr": "pax_wifi{node_id=~\"$Nodes\"}",
+          "editorMode": "code",
           "fullMetaSearch": false,
           "hide": false,
           "includeNullMetadata": true,
-          "instant": false,
-          "legendFormat": "{{short_name}}-{{node_id}}-Wifi",
-          "range": true,
           "refId": "Wifi",
-          "useBackend": false
+          "useBackend": false,
+          "rawQuery": true,
+          "rawSql": "SELECT\n    $__timeGroupAlias(time, $__interval),\n    AVG(wifi_stations) AS \"WiFi stations\"\nFROM pax_counter_metrics\nWHERE node_id IN (${Nodes:singlequote})\n  AND $__timeFilter(time)\nGROUP BY 1\nORDER BY 1",
+          "format": "time_series"
         }
       ],
       "title": "PAX counters",

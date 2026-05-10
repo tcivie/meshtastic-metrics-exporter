@@ -1,45 +1,33 @@
--- Initialize TimescaleDB for Meshtastic Metrics Exporter
+-- Meshtastic Metrics Exporter — TimescaleDB schema
+--
+-- Design notes:
+--   * One hypertable per metric family (device / environment / air_quality /
+--     power / pax_counter / mesh_packet).  All partition on `time`.
+--   * `node_details`, `node_neighbors`, `node_configurations`, `messages` stay
+--     plain tables — they are slowly-changing state, not time-series.
+--   * No per-row triggers on hypertables. Anything that needs to react to new
+--     rows runs as a TimescaleDB scheduled job (`add_job`) instead.
+--   * Idempotent: every CREATE/ALTER uses IF NOT EXISTS / if_not_exists, so
+--     re-running the file on an existing volume is safe.
 
--- Create extension if it doesn't exist
 CREATE EXTENSION IF NOT EXISTS timescaledb;
 
--- Create tables that were previously in PostgreSQL
-CREATE TABLE IF NOT EXISTS messages
-(
-    id          TEXT PRIMARY KEY,
-    received_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
-CREATE OR REPLACE FUNCTION expire_old_messages()
-    RETURNS TRIGGER AS
-$$
-BEGIN
-    DELETE FROM messages WHERE received_at < NOW() - INTERVAL '1 minute';
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trigger_expire_old_messages
-    AFTER INSERT
-    ON messages
-    FOR EACH ROW
-EXECUTE FUNCTION expire_old_messages();
+-- ---------------------------------------------------------------------------
+-- State tables
+-- ---------------------------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS node_details
 (
     node_id        VARCHAR PRIMARY KEY,
-    -- Base Data
     short_name     VARCHAR,
     long_name      VARCHAR,
     hardware_model VARCHAR,
     role           VARCHAR,
-    mqtt_status    VARCHAR   default 'none',
-    -- Location Data
+    mqtt_status    VARCHAR   DEFAULT 'none',
     longitude      INT,
     latitude       INT,
     altitude       INT,
     precision      INT,
-    -- SQL Data
     created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
@@ -55,15 +43,14 @@ CREATE TABLE IF NOT EXISTS node_neighbors
     UNIQUE (node_id, neighbor_id)
 );
 
-CREATE UNIQUE INDEX idx_unique_node_neighbor ON node_neighbors (node_id, neighbor_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_node_neighbor
+    ON node_neighbors (node_id, neighbor_id);
 
--- Create a table for node_configurations
 CREATE TABLE IF NOT EXISTS node_configurations
 (
     node_id                           VARCHAR PRIMARY KEY,
     last_updated                      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
-    -- Configuration (Telemetry)
     environment_update_interval       INTERVAL  DEFAULT '0 seconds' NOT NULL,
     environment_update_last_timestamp TIMESTAMP DEFAULT NOW(),
 
@@ -76,21 +63,17 @@ CREATE TABLE IF NOT EXISTS node_configurations
     power_update_interval             INTERVAL  DEFAULT '0 seconds' NOT NULL,
     power_update_last_timestamp       TIMESTAMP DEFAULT NOW(),
 
-    -- Configuration (Range Test)
     range_test_interval               INTERVAL  DEFAULT '0 seconds' NOT NULL,
-    range_test_packets_total          INT       DEFAULT 0, -- in packets
+    range_test_packets_total          INT       DEFAULT 0,
     range_test_first_packet_timestamp TIMESTAMP DEFAULT NOW(),
     range_test_last_packet_timestamp  TIMESTAMP DEFAULT NOW(),
 
-    -- Configuration (PAX Counter)
     pax_counter_interval              INTERVAL  DEFAULT '0 seconds' NOT NULL,
     pax_counter_last_timestamp        TIMESTAMP DEFAULT NOW(),
 
-    -- Configuration (Neighbor Info)
     neighbor_info_interval            INTERVAL  DEFAULT '0 seconds' NOT NULL,
     neighbor_info_last_timestamp      TIMESTAMP DEFAULT NOW(),
 
-    -- Configuration (MQTT)
     mqtt_encryption_enabled           BOOLEAN   DEFAULT FALSE,
     mqtt_json_enabled                 BOOLEAN   DEFAULT FALSE,
     mqtt_json_message_timestamp       TIMESTAMP DEFAULT NOW(),
@@ -98,17 +81,23 @@ CREATE TABLE IF NOT EXISTS node_configurations
     mqtt_configured_root_topic        TEXT      DEFAULT '',
     mqtt_info_last_timestamp          TIMESTAMP DEFAULT NOW(),
 
-    -- Configuration (Map)
     map_broadcast_interval            INTERVAL  DEFAULT '0 seconds' NOT NULL,
-    map_broadcast_last_timestamp      TIMESTAMP DEFAULT NOW(),
-
-    UNIQUE (node_id)
+    map_broadcast_last_timestamp      TIMESTAMP DEFAULT NOW()
 );
 
--- Create hypertables for time-series data
+CREATE TABLE IF NOT EXISTS messages
+(
+    id          TEXT PRIMARY KEY,
+    received_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
 
--- Device metrics
-CREATE TABLE device_metrics
+CREATE INDEX IF NOT EXISTS idx_messages_received_at ON messages (received_at);
+
+-- ---------------------------------------------------------------------------
+-- Hypertables (time-series)
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS device_metrics
 (
     time                TIMESTAMPTZ NOT NULL,
     node_id             VARCHAR     NOT NULL,
@@ -116,15 +105,10 @@ CREATE TABLE device_metrics
     voltage             FLOAT,
     channel_utilization FLOAT,
     air_util_tx         FLOAT,
-    uptime_seconds      BIGINT,
-    FOREIGN KEY (node_id) REFERENCES node_details (node_id)
+    uptime_seconds      BIGINT
 );
 
-SELECT create_hypertable('device_metrics', 'time');
-CREATE INDEX idx_device_metrics_node_id ON device_metrics (node_id, time DESC);
-
--- Environment metrics
-CREATE TABLE environment_metrics
+CREATE TABLE IF NOT EXISTS environment_metrics
 (
     time                TIMESTAMPTZ NOT NULL,
     node_id             VARCHAR     NOT NULL,
@@ -140,15 +124,10 @@ CREATE TABLE environment_metrics
     uv_lux              FLOAT,
     wind_direction      FLOAT,
     wind_speed          FLOAT,
-    weight              FLOAT,
-    FOREIGN KEY (node_id) REFERENCES node_details (node_id)
+    weight              FLOAT
 );
 
-SELECT create_hypertable('environment_metrics', 'time');
-CREATE INDEX idx_environment_metrics_node_id ON environment_metrics (node_id, time DESC);
-
--- Air quality metrics
-CREATE TABLE air_quality_metrics
+CREATE TABLE IF NOT EXISTS air_quality_metrics
 (
     time                TIMESTAMPTZ NOT NULL,
     node_id             VARCHAR     NOT NULL,
@@ -163,15 +142,10 @@ CREATE TABLE air_quality_metrics
     particles_10um      FLOAT,
     particles_25um      FLOAT,
     particles_50um      FLOAT,
-    particles_100um     FLOAT,
-    FOREIGN KEY (node_id) REFERENCES node_details (node_id)
+    particles_100um     FLOAT
 );
 
-SELECT create_hypertable('air_quality_metrics', 'time');
-CREATE INDEX idx_air_quality_metrics_node_id ON air_quality_metrics (node_id, time DESC);
-
--- Power metrics
-CREATE TABLE power_metrics
+CREATE TABLE IF NOT EXISTS power_metrics
 (
     time        TIMESTAMPTZ NOT NULL,
     node_id     VARCHAR     NOT NULL,
@@ -180,28 +154,22 @@ CREATE TABLE power_metrics
     ch2_voltage FLOAT,
     ch2_current FLOAT,
     ch3_voltage FLOAT,
-    ch3_current FLOAT,
-    FOREIGN KEY (node_id) REFERENCES node_details (node_id)
+    ch3_current FLOAT
 );
 
-SELECT create_hypertable('power_metrics', 'time');
-CREATE INDEX idx_power_metrics_node_id ON power_metrics (node_id, time DESC);
-
--- PAX counter metrics
-CREATE TABLE pax_counter_metrics
+CREATE TABLE IF NOT EXISTS pax_counter_metrics
 (
     time          TIMESTAMPTZ NOT NULL,
     node_id       VARCHAR     NOT NULL,
     wifi_stations BIGINT,
     ble_beacons   BIGINT,
-    FOREIGN KEY (node_id) REFERENCES node_details (node_id)
+    uptime        BIGINT
 );
 
-SELECT create_hypertable('pax_counter_metrics', 'time');
-CREATE INDEX idx_pax_counter_metrics_node_id ON pax_counter_metrics (node_id, time DESC);
+-- For older volumes that already have pax_counter_metrics without uptime.
+ALTER TABLE pax_counter_metrics ADD COLUMN IF NOT EXISTS uptime BIGINT;
 
--- Mesh packet metrics
-CREATE TABLE mesh_packet_metrics
+CREATE TABLE IF NOT EXISTS mesh_packet_metrics
 (
     time               TIMESTAMPTZ NOT NULL,
     source_id          VARCHAR     NOT NULL,
@@ -216,217 +184,233 @@ CREATE TABLE mesh_packet_metrics
     hop_start          INT,
     want_ack           BOOLEAN,
     via_mqtt           BOOLEAN,
-    message_size_bytes INT,
-    FOREIGN KEY (source_id) REFERENCES node_details (node_id),
-    FOREIGN KEY (destination_id) REFERENCES node_details (node_id)
+    message_size_bytes INT
 );
 
-SELECT create_hypertable('mesh_packet_metrics', 'time');
-CREATE INDEX idx_mesh_packet_metrics_source ON mesh_packet_metrics (source_id, time DESC);
-CREATE INDEX idx_mesh_packet_metrics_dest ON mesh_packet_metrics (destination_id, time DESC);
+-- Convert each metric table to a hypertable. `if_not_exists => true` makes
+-- this a no-op when re-run.  Chunk interval is 1 day — mesh-radio data is
+-- low volume; bigger chunks would waste memory on indexes.
+SELECT create_hypertable('device_metrics',     'time', chunk_time_interval => INTERVAL '1 day', if_not_exists => true);
+SELECT create_hypertable('environment_metrics','time', chunk_time_interval => INTERVAL '1 day', if_not_exists => true);
+SELECT create_hypertable('air_quality_metrics','time', chunk_time_interval => INTERVAL '1 day', if_not_exists => true);
+SELECT create_hypertable('power_metrics',      'time', chunk_time_interval => INTERVAL '1 day', if_not_exists => true);
+SELECT create_hypertable('pax_counter_metrics','time', chunk_time_interval => INTERVAL '1 day', if_not_exists => true);
+SELECT create_hypertable('mesh_packet_metrics','time', chunk_time_interval => INTERVAL '1 day', if_not_exists => true);
 
--- Create a function to update node_configurations from metrics tables
-CREATE OR REPLACE FUNCTION update_node_configurations()
-    RETURNS TRIGGER AS
-$$
-BEGIN
-    -- Insert node_id into node_configurations if it doesn't exist
-    INSERT INTO node_configurations (node_id)
-    VALUES (NEW.node_id)
-    ON CONFLICT (node_id) DO NOTHING;
+CREATE INDEX IF NOT EXISTS idx_device_metrics_node_id      ON device_metrics      (node_id, time DESC);
+CREATE INDEX IF NOT EXISTS idx_environment_metrics_node_id ON environment_metrics (node_id, time DESC);
+CREATE INDEX IF NOT EXISTS idx_air_quality_metrics_node_id ON air_quality_metrics (node_id, time DESC);
+CREATE INDEX IF NOT EXISTS idx_power_metrics_node_id       ON power_metrics       (node_id, time DESC);
+CREATE INDEX IF NOT EXISTS idx_pax_counter_metrics_node_id ON pax_counter_metrics (node_id, time DESC);
+CREATE INDEX IF NOT EXISTS idx_mesh_packet_metrics_source  ON mesh_packet_metrics (source_id, time DESC);
+CREATE INDEX IF NOT EXISTS idx_mesh_packet_metrics_dest    ON mesh_packet_metrics (destination_id, time DESC);
+CREATE INDEX IF NOT EXISTS idx_mesh_packet_metrics_portnum ON mesh_packet_metrics (portnum, time DESC);
 
-    -- Update the last_updated timestamp
-    UPDATE node_configurations
-    SET last_updated = NOW()
-    WHERE node_id = NEW.node_id;
+-- ---------------------------------------------------------------------------
+-- Columnstore (compression).  Segment by the entity each query filters on
+-- and order by time DESC — the standard time-series shape.
+-- Chunks older than 14 days get compressed (~10x size reduction); chunks
+-- older than 30 days get dropped by the retention policy below.
+-- ---------------------------------------------------------------------------
 
-    -- Update the specific metric timestamp based on the table that triggered this function
-    IF TG_TABLE_NAME = 'device_metrics' THEN
-        UPDATE node_configurations
-        SET device_update_last_timestamp = NEW.time
-        WHERE node_id = NEW.node_id;
-    ELSIF TG_TABLE_NAME = 'environment_metrics' THEN
-        UPDATE node_configurations
-        SET environment_update_last_timestamp = NEW.time
-        WHERE node_id = NEW.node_id;
-    ELSIF TG_TABLE_NAME = 'air_quality_metrics' THEN
-        UPDATE node_configurations
-        SET air_quality_update_last_timestamp = NEW.time
-        WHERE node_id = NEW.node_id;
-    ELSIF TG_TABLE_NAME = 'power_metrics' THEN
-        UPDATE node_configurations
-        SET power_update_last_timestamp = NEW.time
-        WHERE node_id = NEW.node_id;
-    ELSIF TG_TABLE_NAME = 'pax_counter_metrics' THEN
-        UPDATE node_configurations
-        SET pax_counter_last_timestamp = NEW.time
-        WHERE node_id = NEW.node_id;
-    END IF;
+ALTER TABLE device_metrics      SET (timescaledb.enable_columnstore = true, timescaledb.segmentby = 'node_id',     timescaledb.orderby = 'time DESC');
+ALTER TABLE environment_metrics SET (timescaledb.enable_columnstore = true, timescaledb.segmentby = 'node_id',     timescaledb.orderby = 'time DESC');
+ALTER TABLE air_quality_metrics SET (timescaledb.enable_columnstore = true, timescaledb.segmentby = 'node_id',     timescaledb.orderby = 'time DESC');
+ALTER TABLE power_metrics       SET (timescaledb.enable_columnstore = true, timescaledb.segmentby = 'node_id',     timescaledb.orderby = 'time DESC');
+ALTER TABLE pax_counter_metrics SET (timescaledb.enable_columnstore = true, timescaledb.segmentby = 'node_id',     timescaledb.orderby = 'time DESC');
+ALTER TABLE mesh_packet_metrics SET (timescaledb.enable_columnstore = true, timescaledb.segmentby = 'source_id',   timescaledb.orderby = 'time DESC');
 
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
+-- Columnstore (compression) policies. `add_columnstore_policy` is a
+-- procedure, so it must be CALLed at the top level — table name has to be
+-- a literal regclass, hence the unrolled list.  `if_not_exists => true`
+-- makes re-runs a no-op.
+CALL add_columnstore_policy('device_metrics',      after => INTERVAL '14 days', if_not_exists => true);
+CALL add_columnstore_policy('environment_metrics', after => INTERVAL '14 days', if_not_exists => true);
+CALL add_columnstore_policy('air_quality_metrics', after => INTERVAL '14 days', if_not_exists => true);
+CALL add_columnstore_policy('power_metrics',       after => INTERVAL '14 days', if_not_exists => true);
+CALL add_columnstore_policy('pax_counter_metrics', after => INTERVAL '14 days', if_not_exists => true);
+CALL add_columnstore_policy('mesh_packet_metrics', after => INTERVAL '14 days', if_not_exists => true);
 
--- Create a function to calculate update intervals
-CREATE OR REPLACE FUNCTION calculate_update_intervals()
+-- Retention policies (drop chunks older than 30 days).  Function form
+-- supports `if_not_exists => true` for idempotent re-runs.
+SELECT add_retention_policy('device_metrics',      INTERVAL '30 days', if_not_exists => true);
+SELECT add_retention_policy('environment_metrics', INTERVAL '30 days', if_not_exists => true);
+SELECT add_retention_policy('air_quality_metrics', INTERVAL '30 days', if_not_exists => true);
+SELECT add_retention_policy('power_metrics',       INTERVAL '30 days', if_not_exists => true);
+SELECT add_retention_policy('pax_counter_metrics', INTERVAL '30 days', if_not_exists => true);
+SELECT add_retention_policy('mesh_packet_metrics', INTERVAL '30 days', if_not_exists => true);
+
+-- ---------------------------------------------------------------------------
+-- node_configurations maintenance
+--
+-- Old design used per-row AFTER INSERT triggers on every hypertable to keep
+-- node_configurations.<x>_update_last_timestamp current.  Triggers on
+-- hypertables defeat batched inserts, so we replace them with a single
+-- periodic job that recomputes both the timestamps and the intervals.
+-- ---------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION refresh_node_configurations()
     RETURNS VOID AS
 $$
 BEGIN
-    -- Update device_update_interval
-    UPDATE node_configurations nc
-    SET device_update_interval =
-            COALESCE(
-                    (SELECT CASE
-                                WHEN COUNT(time) > 1 THEN
-                                    (MAX(time) - MIN(time)) / (COUNT(time) - 1)
-                                ELSE
-                                    INTERVAL '0 seconds'
-                                END
-                     FROM device_metrics
-                     WHERE node_id = nc.node_id),
-                    INTERVAL '0 seconds'
-            );
+    -- Make sure every observed node has a configurations row.
+    INSERT INTO node_configurations (node_id)
+    SELECT node_id FROM node_details
+    ON CONFLICT (node_id) DO NOTHING;
 
-    -- Update environment_update_interval
+    -- Latest-seen timestamps per metric family.
     UPDATE node_configurations nc
-    SET environment_update_interval =
-            COALESCE(
-                    (SELECT CASE
-                                WHEN COUNT(time) > 1 THEN
-                                    (MAX(time) - MIN(time)) / (COUNT(time) - 1)
-                                ELSE
-                                    INTERVAL '0 seconds'
-                                END
-                     FROM environment_metrics
-                     WHERE node_id = nc.node_id),
-                    INTERVAL '0 seconds'
-            );
+    SET device_update_last_timestamp = sub.max_time
+    FROM (SELECT node_id, MAX(time) AS max_time FROM device_metrics GROUP BY node_id) sub
+    WHERE nc.node_id = sub.node_id;
 
-    -- Update air_quality_update_interval
     UPDATE node_configurations nc
-    SET air_quality_update_interval =
-            COALESCE(
-                    (SELECT CASE
-                                WHEN COUNT(time) > 1 THEN
-                                    (MAX(time) - MIN(time)) / (COUNT(time) - 1)
-                                ELSE
-                                    INTERVAL '0 seconds'
-                                END
-                     FROM air_quality_metrics
-                     WHERE node_id = nc.node_id),
-                    INTERVAL '0 seconds'
-            );
+    SET environment_update_last_timestamp = sub.max_time
+    FROM (SELECT node_id, MAX(time) AS max_time FROM environment_metrics GROUP BY node_id) sub
+    WHERE nc.node_id = sub.node_id;
 
-    -- Update power_update_interval
     UPDATE node_configurations nc
-    SET power_update_interval =
-            COALESCE(
-                    (SELECT CASE
-                                WHEN COUNT(time) > 1 THEN
-                                    (MAX(time) - MIN(time)) / (COUNT(time) - 1)
-                                ELSE
-                                    INTERVAL '0 seconds'
-                                END
-                     FROM power_metrics
-                     WHERE node_id = nc.node_id),
-                    INTERVAL '0 seconds'
-            );
+    SET air_quality_update_last_timestamp = sub.max_time
+    FROM (SELECT node_id, MAX(time) AS max_time FROM air_quality_metrics GROUP BY node_id) sub
+    WHERE nc.node_id = sub.node_id;
 
-    -- Update pax_counter_interval
     UPDATE node_configurations nc
-    SET pax_counter_interval =
-            COALESCE(
-                    (SELECT CASE
-                                WHEN COUNT(time) > 1 THEN
-                                    (MAX(time) - MIN(time)) / (COUNT(time) - 1)
-                                ELSE
-                                    INTERVAL '0 seconds'
-                                END
-                     FROM pax_counter_metrics
-                     WHERE node_id = nc.node_id),
-                    INTERVAL '0 seconds'
-            );
+    SET power_update_last_timestamp = sub.max_time
+    FROM (SELECT node_id, MAX(time) AS max_time FROM power_metrics GROUP BY node_id) sub
+    WHERE nc.node_id = sub.node_id;
+
+    UPDATE node_configurations nc
+    SET pax_counter_last_timestamp = sub.max_time
+    FROM (SELECT node_id, MAX(time) AS max_time FROM pax_counter_metrics GROUP BY node_id) sub
+    WHERE nc.node_id = sub.node_id;
+
+    -- Average inter-arrival interval per node, family.
+    UPDATE node_configurations nc
+    SET device_update_interval = sub.avg_interval
+    FROM (
+        SELECT node_id,
+               CASE WHEN COUNT(time) > 1 THEN (MAX(time) - MIN(time)) / (COUNT(time) - 1)
+                    ELSE INTERVAL '0 seconds' END AS avg_interval
+        FROM device_metrics GROUP BY node_id
+    ) sub
+    WHERE nc.node_id = sub.node_id;
+
+    UPDATE node_configurations nc
+    SET environment_update_interval = sub.avg_interval
+    FROM (
+        SELECT node_id,
+               CASE WHEN COUNT(time) > 1 THEN (MAX(time) - MIN(time)) / (COUNT(time) - 1)
+                    ELSE INTERVAL '0 seconds' END AS avg_interval
+        FROM environment_metrics GROUP BY node_id
+    ) sub
+    WHERE nc.node_id = sub.node_id;
+
+    UPDATE node_configurations nc
+    SET air_quality_update_interval = sub.avg_interval
+    FROM (
+        SELECT node_id,
+               CASE WHEN COUNT(time) > 1 THEN (MAX(time) - MIN(time)) / (COUNT(time) - 1)
+                    ELSE INTERVAL '0 seconds' END AS avg_interval
+        FROM air_quality_metrics GROUP BY node_id
+    ) sub
+    WHERE nc.node_id = sub.node_id;
+
+    UPDATE node_configurations nc
+    SET power_update_interval = sub.avg_interval
+    FROM (
+        SELECT node_id,
+               CASE WHEN COUNT(time) > 1 THEN (MAX(time) - MIN(time)) / (COUNT(time) - 1)
+                    ELSE INTERVAL '0 seconds' END AS avg_interval
+        FROM power_metrics GROUP BY node_id
+    ) sub
+    WHERE nc.node_id = sub.node_id;
+
+    UPDATE node_configurations nc
+    SET pax_counter_interval = sub.avg_interval
+    FROM (
+        SELECT node_id,
+               CASE WHEN COUNT(time) > 1 THEN (MAX(time) - MIN(time)) / (COUNT(time) - 1)
+                    ELSE INTERVAL '0 seconds' END AS avg_interval
+        FROM pax_counter_metrics GROUP BY node_id
+    ) sub
+    WHERE nc.node_id = sub.node_id;
+
+    UPDATE node_configurations
+    SET last_updated = NOW();
 END;
 $$ LANGUAGE plpgsql;
 
--- Schedule calculate_update_intervals() using TimescaleDB background jobs.
--- This project already depends on TimescaleDB (hypertables/retention), so we can rely on add_job.
-CREATE OR REPLACE PROCEDURE calculate_update_intervals_job(job_id int, config jsonb)
+CREATE OR REPLACE PROCEDURE refresh_node_configurations_job(job_id int, config jsonb)
 LANGUAGE plpgsql
 AS $$
 BEGIN
-  PERFORM calculate_update_intervals();
+    PERFORM refresh_node_configurations();
+END;
+$$;
+
+-- Drop the old per-row triggers if a previous schema is being upgraded.
+DROP TRIGGER IF EXISTS trigger_device_metrics_insert      ON device_metrics;
+DROP TRIGGER IF EXISTS trigger_environment_metrics_insert ON environment_metrics;
+DROP TRIGGER IF EXISTS trigger_air_quality_metrics_insert ON air_quality_metrics;
+DROP TRIGGER IF EXISTS trigger_power_metrics_insert       ON power_metrics;
+DROP TRIGGER IF EXISTS trigger_pax_counter_metrics_insert ON pax_counter_metrics;
+DROP TRIGGER IF EXISTS trigger_expire_old_messages        ON messages;
+DROP FUNCTION IF EXISTS update_node_configurations();
+DROP FUNCTION IF EXISTS expire_old_messages();
+DROP FUNCTION IF EXISTS calculate_update_intervals();
+DROP PROCEDURE IF EXISTS calculate_update_intervals_job(int, jsonb);
+
+-- Schedule the refresh job hourly.  Idempotent: add_job throws if the same
+-- name already exists.
+DO $$
+BEGIN
+    PERFORM add_job(
+        proc => 'refresh_node_configurations_job',
+        schedule_interval => INTERVAL '1 hour',
+        job_name => 'refresh_node_configurations_hourly'
+    );
+EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE 'refresh_node_configurations job: %', SQLERRM;
+END $$;
+
+-- Also schedule cleanup of the dedup `messages` table.  Replaces the
+-- per-row trigger that DELETEd on every INSERT.
+CREATE OR REPLACE PROCEDURE messages_cleanup_job(job_id int, config jsonb)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    DELETE FROM messages WHERE received_at < NOW() - INTERVAL '5 minutes';
 END;
 $$;
 
 DO $$
 BEGIN
-  -- Use a stable job name to avoid duplicates on re-init.
-  PERFORM add_job(
-    proc => 'calculate_update_intervals_job',
-    schedule_interval => INTERVAL '1 hour',
-    job_name => 'calculate_update_intervals_hourly'
-  );
-EXCEPTION
-  WHEN OTHERS THEN
-    -- add_job may error if the job already exists; treat as benign on repeated init.
-    RAISE NOTICE 'calculate_update_intervals job already scheduled (or could not be scheduled): %', SQLERRM;
-END
-$$;
+    PERFORM add_job(
+        proc => 'messages_cleanup_job',
+        schedule_interval => INTERVAL '1 minute',
+        job_name => 'messages_cleanup_minutely'
+    );
+EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE 'messages_cleanup job: %', SQLERRM;
+END $$;
 
--- Create triggers to update node_configurations when metrics are inserted
-CREATE TRIGGER trigger_device_metrics_insert
-    AFTER INSERT
-    ON device_metrics
-    FOR EACH ROW
-EXECUTE FUNCTION update_node_configurations();
+-- ---------------------------------------------------------------------------
+-- Convenience view used by db_handler.get_latest_metrics().
+-- ---------------------------------------------------------------------------
 
-CREATE TRIGGER trigger_environment_metrics_insert
-    AFTER INSERT
-    ON environment_metrics
-    FOR EACH ROW
-EXECUTE FUNCTION update_node_configurations();
-
-CREATE TRIGGER trigger_air_quality_metrics_insert
-    AFTER INSERT
-    ON air_quality_metrics
-    FOR EACH ROW
-EXECUTE FUNCTION update_node_configurations();
-
-CREATE TRIGGER trigger_power_metrics_insert
-    AFTER INSERT
-    ON power_metrics
-    FOR EACH ROW
-EXECUTE FUNCTION update_node_configurations();
-
-CREATE TRIGGER trigger_pax_counter_metrics_insert
-    AFTER INSERT
-    ON pax_counter_metrics
-    FOR EACH ROW
-EXECUTE FUNCTION update_node_configurations();
-
--- Set up retention policies (default: 30 days)
-SELECT add_retention_policy('device_metrics', INTERVAL '30 days');
-SELECT add_retention_policy('environment_metrics', INTERVAL '30 days');
-SELECT add_retention_policy('air_quality_metrics', INTERVAL '30 days');
-SELECT add_retention_policy('power_metrics', INTERVAL '30 days');
-SELECT add_retention_policy('pax_counter_metrics', INTERVAL '30 days');
-SELECT add_retention_policy('mesh_packet_metrics', INTERVAL '30 days');
-
--- Create views for easier querying
 CREATE OR REPLACE VIEW node_telemetry AS
 SELECT d.node_id,
        d.short_name,
        d.long_name,
        d.hardware_model,
        d.role,
-       dm.time as device_time,
+       dm.time AS device_time,
        dm.battery_level,
        dm.voltage,
        dm.channel_utilization,
        dm.air_util_tx,
        dm.uptime_seconds,
-       em.time as environment_time,
+       em.time AS environment_time,
        em.temperature,
        em.relative_humidity,
        em.barometric_pressure,
@@ -440,7 +424,7 @@ SELECT d.node_id,
        em.wind_direction,
        em.wind_speed,
        em.weight,
-       aq.time as air_quality_time,
+       aq.time AS air_quality_time,
        aq.pm10_standard,
        aq.pm25_standard,
        aq.pm100_standard,
@@ -453,7 +437,7 @@ SELECT d.node_id,
        aq.particles_25um,
        aq.particles_50um,
        aq.particles_100um,
-       pm.time as power_time,
+       pm.time AS power_time,
        pm.ch1_voltage,
        pm.ch1_current,
        pm.ch2_voltage,
@@ -461,40 +445,11 @@ SELECT d.node_id,
        pm.ch3_voltage,
        pm.ch3_current
 FROM node_details d
-         LEFT JOIN LATERAL (
-    SELECT *
-    FROM device_metrics
-    WHERE node_id = d.node_id
-    ORDER BY time DESC
-    LIMIT 1
-    ) dm ON true
-         LEFT JOIN LATERAL (
-    SELECT *
-    FROM environment_metrics
-    WHERE node_id = d.node_id
-    ORDER BY time DESC
-    LIMIT 1
-    ) em ON true
-         LEFT JOIN LATERAL (
-    SELECT *
-    FROM air_quality_metrics
-    WHERE node_id = d.node_id
-    ORDER BY time DESC
-    LIMIT 1
-    ) aq ON true
-         LEFT JOIN LATERAL (
-    SELECT *
-    FROM power_metrics
-    WHERE node_id = d.node_id
-    ORDER BY time DESC
-    LIMIT 1
-    ) pm ON true;
+LEFT JOIN LATERAL (SELECT * FROM device_metrics      WHERE node_id = d.node_id ORDER BY time DESC LIMIT 1) dm ON true
+LEFT JOIN LATERAL (SELECT * FROM environment_metrics WHERE node_id = d.node_id ORDER BY time DESC LIMIT 1) em ON true
+LEFT JOIN LATERAL (SELECT * FROM air_quality_metrics WHERE node_id = d.node_id ORDER BY time DESC LIMIT 1) aq ON true
+LEFT JOIN LATERAL (SELECT * FROM power_metrics       WHERE node_id = d.node_id ORDER BY time DESC LIMIT 1) pm ON true;
 
--- Initialize node_configurations table with existing node_ids from node_details
-INSERT INTO node_configurations (node_id)
-SELECT node_id
-FROM node_details
-ON CONFLICT (node_id) DO NOTHING;
-
--- Calculate initial update intervals
-SELECT calculate_update_intervals();
+-- Run once at init so the configurations side-table reflects any data that
+-- may already be present.
+SELECT refresh_node_configurations();

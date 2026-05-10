@@ -186,13 +186,13 @@
       "targets": [
         {
           "datasource": {
-            "type": "postgres",
+            "type": "grafana-postgresql-datasource",
             "uid": "PA942B37CCFAF5A81"
           },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT DISTINCT\n    cd.node_id AS \"id\",\n    cd.long_name AS \"title\",\n    cd.hardware_model AS \"detail__Hardware Detail\",\n    cd.role AS \"detail__Client Role\",\n    cd.mqtt_status AS \"detail__MQTT Status\",\n    cd.short_name AS \"subtitle\",\n    cd.longitude * 1e-7 AS \"longitude\",\n    cd.latitude * 1e-7 AS \"latitude\"\nFROM\n    node_details cd\nLEFT JOIN (\n    SELECT node_id FROM node_neighbors\n    UNION\n    SELECT neighbor_id FROM node_neighbors\n) nn ON cd.node_id = nn.node_id\nWHERE nn.node_id IS NOT NULL",
+          "rawSql": "WITH pairs AS (\n    SELECT source_id, destination_id\n    FROM mesh_packet_metrics\n    WHERE time > NOW() - INTERVAL '1 hour'\n      AND destination_id NOT IN ('4294967295','1','0')\n      AND source_id <> destination_id\n),\nconnected AS (\n    SELECT source_id      AS node_id FROM pairs\n    UNION SELECT destination_id FROM pairs\n    UNION SELECT node_id        FROM node_neighbors\n    UNION SELECT neighbor_id    FROM node_neighbors\n),\nranked AS (\n    SELECT c.node_id, COUNT(p.*) AS conns\n    FROM connected c\n    LEFT JOIN pairs p\n      ON p.source_id = c.node_id OR p.destination_id = c.node_id\n    GROUP BY c.node_id\n    ORDER BY conns DESC\n    LIMIT 200\n)\nSELECT\n    cd.node_id AS \"id\",\n    cd.long_name AS \"title\",\n    cd.short_name AS \"subtitle\",\n    cd.hardware_model AS \"detail__Hardware Detail\",\n    cd.role AS \"detail__Client Role\",\n    cd.mqtt_status AS \"detail__MQTT Status\",\n    cd.longitude * 1e-7 AS \"longitude\",\n    cd.latitude  * 1e-7 AS \"latitude\",\n    CASE\n        WHEN cd.mqtt_status = 'online' THEN '#2ECC71'\n        WHEN cd.mqtt_status = 'offline' THEN '#E74C3C'\n        ELSE '#808080'\n    END AS \"color\"\nFROM node_details cd\nJOIN ranked r ON r.node_id = cd.node_id",
           "refId": "nodes",
           "sql": {
             "columns": [
@@ -271,14 +271,14 @@
         },
         {
           "datasource": {
-            "type": "postgres",
+            "type": "grafana-postgresql-datasource",
             "uid": "PA942B37CCFAF5A81"
           },
           "editorMode": "code",
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "SELECT \n    CONCAT(neighbor_id, '_', node_id) AS id,\n    neighbor_id AS \"source\",\n    node_id AS \"target\",\n    snr AS \"mainstat\",\n    CASE\n        WHEN snr < -13 THEN '#E74C3C'  -- Red for SNR < -13\n        WHEN snr < -7 THEN '#F4D03F'   -- Yellow for -13 ≤ SNR < -7\n        ELSE '#2ECC71'                 -- Green for SNR ≥ -7\n    END AS \"color\",\n    GREATEST(0.1, LEAST(2, 1 + ((snr + 13) / 10))) AS \"thickness\"\nFROM \n    node_neighbors",
+          "rawSql": "WITH pairs AS (\n    SELECT\n        source_id,\n        destination_id,\n        COUNT(*) AS pkts,\n        AVG(rx_snr)  AS avg_snr,\n        AVG(rx_rssi) AS avg_rssi\n    FROM mesh_packet_metrics\n    WHERE time > NOW() - INTERVAL '1 hour'\n      AND destination_id NOT IN ('4294967295','1','0')\n      AND source_id <> destination_id\n    GROUP BY source_id, destination_id\n)\nSELECT\n    source_id || '_' || destination_id AS id,\n    source_id      AS \"source\",\n    destination_id AS \"target\",\n    ROUND(avg_snr::numeric, 1) AS \"mainstat\",\n    pkts                      AS \"secondarystat\",\n    CASE\n        WHEN avg_snr < -13 THEN '#E74C3C'\n        WHEN avg_snr <  -7 THEN '#F4D03F'\n        ELSE '#2ECC71'\n    END AS \"color\",\n    GREATEST(0.5, LEAST(4, LOG(pkts + 1))) AS \"thickness\"\nFROM pairs\n\nUNION ALL\n\nSELECT\n    neighbor_id || '_' || node_id AS id,\n    neighbor_id AS \"source\",\n    node_id     AS \"target\",\n    snr         AS \"mainstat\",\n    NULL        AS \"secondarystat\",\n    CASE\n        WHEN snr < -13 THEN '#E74C3C'\n        WHEN snr <  -7 THEN '#F4D03F'\n        ELSE '#2ECC71'\n    END AS \"color\",\n    GREATEST(0.5, LEAST(4, 1 + ((snr + 13) / 10))) AS \"thickness\"\nFROM node_neighbors",
           "refId": "edges",
           "sql": {
             "columns": [

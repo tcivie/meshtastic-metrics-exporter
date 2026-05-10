@@ -23,8 +23,8 @@
       },
       {
         "datasource": {
-          "type": "datasource",
-          "uid": "grafana"
+          "type": "grafana-postgresql-datasource",
+          "uid": "PA942B37CCFAF5A81"
         },
         "enable": true,
         "iconColor": "light-yellow",
@@ -49,7 +49,7 @@
   "panels": [
     {
       "datasource": {
-        "type": "postgres",
+        "type": "grafana-postgresql-datasource",
         "uid": "PA942B37CCFAF5A81"
       },
       "description": "Total number of observed nodes in the mesh",
@@ -100,7 +100,7 @@
       "targets": [
         {
           "datasource": {
-            "type": "postgres",
+            "type": "grafana-postgresql-datasource",
             "uid": "PA942B37CCFAF5A81"
           },
           "editorMode": "builder",
@@ -387,7 +387,7 @@
         "type": "grafana-postgresql-datasource",
         "uid": "PA942B37CCFAF5A81"
       },
-      "description": "Status of nodes in the MQTT server",
+      "description": "Active = sent a packet in the last 30 minutes. Stale = seen before but quiet now.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -400,17 +400,17 @@
                 "none": {
                   "color": "text",
                   "index": 0,
-                  "text": "⚪️ Unknown"
+                  "text": "\u26aa\ufe0f Unknown"
                 },
                 "offline": {
                   "color": "red",
                   "index": 1,
-                  "text": "🛑 Offline"
+                  "text": "\ud83d\uded1 Offline"
                 },
                 "online": {
                   "color": "green",
                   "index": 2,
-                  "text": "🟢 Online"
+                  "text": "\ud83d\udfe2 Online"
                 }
               },
               "type": "value"
@@ -456,12 +456,12 @@
       "targets": [
         {
           "datasource": {
-            "type": "postgres",
+            "type": "grafana-postgresql-datasource",
             "uid": "PA942B37CCFAF5A81"
           },
           "editorMode": "builder",
           "format": "table",
-          "rawSql": "SELECT COUNT(mqtt_status), mqtt_status FROM node_details WHERE (COALESCE(mqtt_status, '') <> '' AND mqtt_status NOT LIKE '%none%' AND mqtt_status NOT LIKE '%Unknown%') GROUP BY mqtt_status LIMIT 50 ",
+          "rawSql": "WITH last_seen AS (\n    SELECT source_id AS node_id, MAX(time) AS t\n    FROM mesh_packet_metrics\n    GROUP BY source_id\n)\nSELECT\n    COALESCE(SUM(CASE WHEN t > NOW() - INTERVAL '30 minutes' THEN 1 END), 0) AS \"Active\",\n    COALESCE(SUM(CASE WHEN t <= NOW() - INTERVAL '30 minutes' THEN 1 END), 0) AS \"Stale\"\nFROM last_seen",
           "refId": "A",
           "sql": {
             "columns": [
@@ -560,16 +560,17 @@
             },
             "whereString": "(COALESCE(mqtt_status, '') <> '' AND mqtt_status NOT LIKE '%none%' AND mqtt_status NOT LIKE '%Unknown%')"
           },
-          "table": "node_details"
+          "table": "node_details",
+          "rawQuery": true
         }
       ],
-      "title": "MQTT Node status",
+      "title": "Node activity (last 30m)",
       "type": "stat"
     },
     {
       "datasource": {
-        "type": "datasource",
-        "uid": "-- Mixed --"
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
       },
       "description": "Total packets sent in specified time range",
       "fieldConfig": {
@@ -624,18 +625,18 @@
       "targets": [
         {
           "datasource": {
-            "type": "prometheus",
+            "type": "grafana-postgresql-datasource",
             "uid": "PA942B37CCFAF5A81"
           },
           "disableTextWrap": false,
-          "editorMode": "builder",
-          "expr": "sum(sum by(portnum) (mesh_packet_source_types_total{source_id=~\"$Nodes\"}))",
+          "editorMode": "code",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
-          "legendFormat": "__auto",
-          "range": true,
           "refId": "A",
-          "useBackend": false
+          "useBackend": false,
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(*) AS value\nFROM mesh_packet_metrics\nWHERE source_id IN (${Nodes:singlequote})\n  AND $__timeFilter(time)",
+          "format": "table"
         }
       ],
       "title": "Total packets sent",
@@ -643,7 +644,7 @@
     },
     {
       "datasource": {
-        "type": "prometheus",
+        "type": "grafana-postgresql-datasource",
         "uid": "PA942B37CCFAF5A81"
       },
       "description": "Shows the total data sent on the mesh in bytes in the last hour. This includes all types of packets.",
@@ -694,20 +695,19 @@
       "targets": [
         {
           "datasource": {
-            "type": "prometheus",
+            "type": "grafana-postgresql-datasource",
             "uid": "PA942B37CCFAF5A81"
           },
           "disableTextWrap": false,
-          "editorMode": "builder",
-          "expr": "sum(sum_over_time(text_message_app_size_in_bytes{source_id=~\"$Nodes\"}[1h]))",
+          "editorMode": "code",
           "fullMetaSearch": false,
           "hide": false,
           "includeNullMetadata": false,
-          "instant": false,
-          "legendFormat": "__auto",
-          "range": true,
           "refId": "A",
-          "useBackend": false
+          "useBackend": false,
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(SUM(message_size_bytes), 0)::bigint AS value\nFROM mesh_packet_metrics\nWHERE source_id IN (${Nodes:singlequote})\n  AND time >= NOW() - INTERVAL '1 hour'",
+          "format": "table"
         }
       ],
       "title": "Data sent on mesh in last hour",
@@ -741,7 +741,7 @@
     },
     {
       "datasource": {
-        "type": "prometheus",
+        "type": "grafana-postgresql-datasource",
         "uid": "PA942B37CCFAF5A81"
       },
       "description": "Shows the max recorded chanel utilization and the average",
@@ -839,20 +839,19 @@
       "targets": [
         {
           "datasource": {
-            "type": "prometheus",
+            "type": "grafana-postgresql-datasource",
             "uid": "PA942B37CCFAF5A81"
           },
           "disableTextWrap": false,
-          "editorMode": "builder",
-          "expr": "avg(telemetry_app_channel_utilization{node_id=~\"$Nodes\"})",
+          "editorMode": "code",
           "fullMetaSearch": false,
           "hide": false,
           "includeNullMetadata": true,
-          "instant": false,
-          "legendFormat": "Chanel utilization (Avg)",
-          "range": true,
           "refId": "Average Chanel Utilization",
-          "useBackend": false
+          "useBackend": false,
+          "rawQuery": true,
+          "rawSql": "SELECT\n    $__timeGroupAlias(time, $__interval),\n    AVG(channel_utilization) AS \"Average Channel Utilization\"\nFROM device_metrics\nWHERE node_id IN (${Nodes:singlequote})\n  AND $__timeFilter(time)\nGROUP BY 1\nORDER BY 1",
+          "format": "time_series"
         }
       ],
       "title": "Channel Utilization (ChUtil)",
@@ -860,7 +859,7 @@
     },
     {
       "datasource": {
-        "type": "prometheus",
+        "type": "grafana-postgresql-datasource",
         "uid": "PA942B37CCFAF5A81"
       },
       "description": "This panel shows the percentage of airtime used for transmissions in the last hour. Airtime in LoRa networks represents the duration a device occupies the radio frequency channel to send data. It's a critical metric for:\n\nNetwork capacity: Higher airtime usage indicates increased network load.\n\nRegulatory compliance: Many regions limit the total airtime per device.\n\nBattery life: More airtime generally means higher power consumption.\n\nThe data comes from Meshtastic packets, reflecting actual network usage. High percentages may suggest the need for optimization or capacity planning.",
@@ -953,21 +952,19 @@
       "targets": [
         {
           "datasource": {
-            "type": "prometheus",
+            "type": "grafana-postgresql-datasource",
             "uid": "PA942B37CCFAF5A81"
           },
           "disableTextWrap": false,
           "editorMode": "code",
           "exemplar": false,
-          "expr": "telemetry_app_air_util_tx{node_id=~\"$Nodes\"} > -100\nand\ndelta(telemetry_app_air_util_tx{node_id=~\"$Nodes\"}[1m]) != 0",
           "format": "time_series",
           "fullMetaSearch": false,
           "includeNullMetadata": false,
-          "instant": false,
-          "legendFormat": "{{long_name}}",
-          "range": true,
           "refId": "A",
-          "useBackend": false
+          "useBackend": false,
+          "rawQuery": true,
+          "rawSql": "SELECT\n    $__timeGroupAlias(time, $__interval),\n    COALESCE(nd.long_name, dm.node_id) AS metric,\n    AVG(dm.air_util_tx) AS value\nFROM device_metrics dm\nLEFT JOIN node_details nd ON nd.node_id = dm.node_id\nWHERE dm.node_id IN (${Nodes:singlequote})\n  AND $__timeFilter(dm.time)\nGROUP BY 1, 2\nORDER BY 1"
         }
       ],
       "title": "Duty Cycle (AirUtilTX)",
@@ -975,10 +972,10 @@
     },
     {
       "datasource": {
-        "type": "prometheus",
+        "type": "grafana-postgresql-datasource",
         "uid": "PA942B37CCFAF5A81"
       },
-      "description": "Displays the nodes that utilize most of the channel (On average with at least 1 update every hour)",
+      "description": "Top 10 nodes by average ChUtil over the selected range. Hover for live trend.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1049,46 +1046,45 @@
       "id": 26,
       "options": {
         "legend": {
-          "calcs": [
-            "lastNotNull"
-          ],
           "displayMode": "table",
           "placement": "right",
           "showLegend": true,
-          "sortBy": "Last *",
-          "sortDesc": true
+          "calcs": [
+            "lastNotNull",
+            "mean",
+            "max"
+          ]
         },
         "tooltip": {
           "mode": "multi",
-          "sort": "none"
+          "sort": "desc"
         }
       },
       "targets": [
         {
           "datasource": {
-            "type": "prometheus",
+            "type": "grafana-postgresql-datasource",
             "uid": "PA942B37CCFAF5A81"
           },
           "disableTextWrap": false,
           "editorMode": "code",
           "exemplar": false,
-          "expr": "topk(3,\n  avg by (node_id, short_name, long_name) (\n    avg_over_time(telemetry_app_channel_utilization{node_id=~\"$Nodes\"}[$__range]) > 0\n    and\n    timestamp(telemetry_app_channel_utilization{node_id=~\"$Nodes\"}) > time() - 3600\n    and\n    changes(telemetry_app_channel_utilization{node_id=~\"$Nodes\"}[3h]) > 0\n  )\n)",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
-          "instant": false,
-          "legendFormat": "{{short_name}}:{{long_name}}",
-          "range": true,
           "refId": "A",
-          "useBackend": false
+          "useBackend": false,
+          "rawQuery": true,
+          "rawSql": "WITH top_nodes AS (\n    SELECT dm.node_id,\n           AVG(dm.channel_utilization) AS util\n    FROM device_metrics dm\n    WHERE dm.node_id IN (${Nodes:singlequote})\n      AND $__timeFilter(dm.time)\n      AND dm.channel_utilization > 0\n    GROUP BY dm.node_id\n    ORDER BY util DESC\n    LIMIT 10\n)\nSELECT\n    $__timeGroupAlias(dm.time, $__interval),\n    COALESCE(NULLIF(nd.long_name,'Unknown'), nd.short_name, dm.node_id) || ' (' || dm.node_id || ')' AS metric,\n    AVG(dm.channel_utilization) AS value\nFROM device_metrics dm\nJOIN top_nodes tn ON tn.node_id = dm.node_id\nLEFT JOIN node_details nd ON nd.node_id = dm.node_id\nWHERE $__timeFilter(dm.time)\nGROUP BY 1, 2\nORDER BY 1",
+          "format": "time_series"
         }
       ],
-      "title": "Top channel utilizers",
+      "title": "Top 10 channel utilizers",
       "type": "timeseries"
     },
     {
       "datasource": {
-        "type": "datasource",
-        "uid": "-- Mixed --"
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
       },
       "description": "Displays types of packets in the selected time range.\n\nFor more details see:\nhttps://buf.build/meshtastic/protobufs/docs/main:meshtastic#meshtastic.PortNum",
       "fieldConfig": {
@@ -1123,9 +1119,13 @@
           "percent"
         ],
         "legend": {
-          "displayMode": "list",
+          "displayMode": "table",
           "placement": "right",
-          "showLegend": false
+          "showLegend": true,
+          "values": [
+            "percent",
+            "value"
+          ]
         },
         "pieType": "donut",
         "reduceOptions": {
@@ -1144,18 +1144,18 @@
       "targets": [
         {
           "datasource": {
-            "type": "prometheus",
+            "type": "grafana-postgresql-datasource",
             "uid": "PA942B37CCFAF5A81"
           },
           "disableTextWrap": false,
-          "editorMode": "builder",
-          "expr": "sum by(portnum) (mesh_packet_source_types_total{source_id=~\"$Nodes\"})",
+          "editorMode": "code",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
-          "legendFormat": "__auto",
-          "range": true,
           "refId": "A",
-          "useBackend": false
+          "useBackend": false,
+          "rawQuery": true,
+          "rawSql": "SELECT\n    NOW() AS time,\n    portnum AS metric,\n    COUNT(*)::float AS value\nFROM mesh_packet_metrics\nWHERE source_id IN (${Nodes:singlequote})\n  AND $__timeFilter(time)\nGROUP BY portnum\nORDER BY value DESC",
+          "format": "time_series"
         }
       ],
       "title": "Packet types for selected time",
@@ -1163,7 +1163,7 @@
     },
     {
       "datasource": {
-        "type": "prometheus",
+        "type": "grafana-postgresql-datasource",
         "uid": "PA942B37CCFAF5A81"
       },
       "description": "How many hops are configured for each client",
@@ -1231,19 +1231,18 @@
       "targets": [
         {
           "datasource": {
-            "type": "prometheus",
+            "type": "grafana-postgresql-datasource",
             "uid": "PA942B37CCFAF5A81"
           },
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "max(\n  mesh_packet_hop_start{source_id=~\"$Nodes\"}\n  and\n  (delta(mesh_packet_hop_start{source_id=~\"$Nodes\"}[1m]) != 0)\n) by (source_id, source_long_name)",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
-          "instant": false,
-          "legendFormat": "{{source_long_name}}",
-          "range": true,
           "refId": "A",
-          "useBackend": false
+          "useBackend": false,
+          "rawQuery": true,
+          "rawSql": "SELECT\n    COALESCE(nd.long_name, m.source_id) AS metric,\n    MAX(m.hop_start) AS value\nFROM mesh_packet_metrics m\nLEFT JOIN node_details nd ON nd.node_id = m.source_id\nWHERE m.source_id IN (${Nodes:singlequote})\n  AND $__timeFilter(m.time)\n  AND m.hop_start > 0\nGROUP BY 1\nORDER BY value DESC",
+          "format": "table"
         }
       ],
       "title": "The configured max hops for each client",
@@ -1274,13 +1273,13 @@
       "targets": [
         {
           "datasource": {
-            "type": "postgres",
+            "type": "grafana-postgresql-datasource",
             "uid": "PA942B37CCFAF5A81"
           },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT DISTINCT\n    cd.node_id AS \"id\",\n    cd.long_name AS \"title\",\n    cd.hardware_model AS \"detail__Hardware Detail\",\n    cd.role AS \"detail__Client Role\",\n    cd.mqtt_status AS \"detail__MQTT Status\",\n    cd.short_name AS \"subtitle\",\n    CASE\n        WHEN cd.mqtt_status = 'online' THEN '#2ECC71' -- Green for online\n        WHEN cd.mqtt_status = 'offline' THEN '#E74C3C' -- Red for offline\n        ELSE '#808080' -- Gray for none or any other status\n    END AS \"color\"\nFROM\n    node_details cd\nLEFT JOIN (\n    SELECT node_id FROM node_neighbors\n    UNION\n    SELECT neighbor_id FROM node_neighbors\n) nn ON cd.node_id = nn.node_id\nWHERE nn.node_id IS NOT NULL",
+          "rawSql": "WITH pairs AS (\n    SELECT source_id, destination_id\n    FROM mesh_packet_metrics\n    WHERE time > NOW() - INTERVAL '1 hour'\n      AND destination_id NOT IN ('4294967295','1','0')\n      AND source_id <> destination_id\n),\nconnected AS (\n    SELECT source_id      AS node_id FROM pairs\n    UNION SELECT destination_id FROM pairs\n    UNION SELECT node_id        FROM node_neighbors\n    UNION SELECT neighbor_id    FROM node_neighbors\n),\nranked AS (\n    SELECT c.node_id, COUNT(p.*) AS conns\n    FROM connected c\n    LEFT JOIN pairs p\n      ON p.source_id = c.node_id OR p.destination_id = c.node_id\n    GROUP BY c.node_id\n    ORDER BY conns DESC\n    LIMIT 200\n)\nSELECT\n    cd.node_id AS \"id\",\n    cd.long_name AS \"title\",\n    cd.short_name AS \"subtitle\",\n    cd.hardware_model AS \"detail__Hardware Detail\",\n    cd.role AS \"detail__Client Role\",\n    cd.mqtt_status AS \"detail__MQTT Status\",\n    CASE\n        WHEN cd.mqtt_status = 'online' THEN '#2ECC71'\n        WHEN cd.mqtt_status = 'offline' THEN '#E74C3C'\n        ELSE '#808080'\n    END AS \"color\"\nFROM node_details cd\nJOIN ranked r ON r.node_id = cd.node_id",
           "refId": "nodes",
           "sql": {
             "columns": [
@@ -1359,14 +1358,14 @@
         },
         {
           "datasource": {
-            "type": "postgres",
+            "type": "grafana-postgresql-datasource",
             "uid": "PA942B37CCFAF5A81"
           },
           "editorMode": "code",
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "SELECT \n    CONCAT(neighbor_id, '_', node_id) AS id,\n    neighbor_id AS \"source\",\n    node_id AS \"target\",\n    snr AS \"mainstat\",\n    CASE\n        WHEN snr < -13 THEN '#E74C3C'  -- Red for SNR < -13\n        WHEN snr < -7 THEN '#F4D03F'   -- Yellow for -13 ≤ SNR < -7\n        ELSE '#2ECC71'                 -- Green for SNR ≥ -7\n    END AS \"color\",\n    GREATEST(0.1, LEAST(2, 1 + ((snr + 13) / 10))) AS \"thickness\"\nFROM \n    node_neighbors",
+          "rawSql": "WITH pairs AS (\n    SELECT\n        source_id,\n        destination_id,\n        COUNT(*) AS pkts,\n        AVG(rx_snr)  AS avg_snr,\n        AVG(rx_rssi) AS avg_rssi\n    FROM mesh_packet_metrics\n    WHERE time > NOW() - INTERVAL '1 hour'\n      AND destination_id NOT IN ('4294967295','1','0')\n      AND source_id <> destination_id\n    GROUP BY source_id, destination_id\n)\nSELECT\n    source_id || '_' || destination_id AS id,\n    source_id      AS \"source\",\n    destination_id AS \"target\",\n    ROUND(avg_snr::numeric, 1) AS \"mainstat\",\n    pkts                      AS \"secondarystat\",\n    CASE\n        WHEN avg_snr < -13 THEN '#E74C3C'\n        WHEN avg_snr <  -7 THEN '#F4D03F'\n        ELSE '#2ECC71'\n    END AS \"color\",\n    GREATEST(0.5, LEAST(4, LOG(pkts + 1))) AS \"thickness\"\nFROM pairs\n\nUNION ALL\n\nSELECT\n    neighbor_id || '_' || node_id AS id,\n    neighbor_id AS \"source\",\n    node_id     AS \"target\",\n    snr         AS \"mainstat\",\n    NULL        AS \"secondarystat\",\n    CASE\n        WHEN snr < -13 THEN '#E74C3C'\n        WHEN snr <  -7 THEN '#F4D03F'\n        ELSE '#2ECC71'\n    END AS \"color\",\n    GREATEST(0.5, LEAST(4, 1 + ((snr + 13) / 10))) AS \"thickness\"\nFROM node_neighbors",
           "refId": "edges",
           "sql": {
             "columns": [
@@ -1452,17 +1451,17 @@
                 "none": {
                   "color": "text",
                   "index": 2,
-                  "text": "⚪️ Unknown"
+                  "text": "\u26aa\ufe0f Unknown"
                 },
                 "offline": {
                   "color": "red",
                   "index": 1,
-                  "text": "🛑 offline"
+                  "text": "\ud83d\uded1 offline"
                 },
                 "online": {
                   "color": "green",
                   "index": 0,
-                  "text": "🟢 online"
+                  "text": "\ud83d\udfe2 online"
                 }
               },
               "type": "value"
@@ -1473,7 +1472,7 @@
                 "result": {
                   "color": "text",
                   "index": 3,
-                  "text": "⚪️ Unknown"
+                  "text": "\u26aa\ufe0f Unknown"
                 }
               },
               "type": "special"
@@ -1596,7 +1595,7 @@
       "targets": [
         {
           "datasource": {
-            "type": "postgres",
+            "type": "grafana-postgresql-datasource",
             "uid": "PA942B37CCFAF5A81"
           },
           "editorMode": "code",
@@ -1742,17 +1741,17 @@
                 "none": {
                   "color": "blue",
                   "index": 0,
-                  "text": "⚪️ Unknown"
+                  "text": "\u26aa\ufe0f Unknown"
                 },
                 "offline": {
                   "color": "red",
                   "index": 2,
-                  "text": "🛑 Offline"
+                  "text": "\ud83d\uded1 Offline"
                 },
                 "online": {
                   "color": "green",
                   "index": 1,
-                  "text": "🟢 Online"
+                  "text": "\ud83d\udfe2 Online"
                 }
               },
               "type": "value"
@@ -1890,14 +1889,14 @@
       "targets": [
         {
           "datasource": {
-            "type": "postgres",
+            "type": "grafana-postgresql-datasource",
             "uid": "PA942B37CCFAF5A81"
           },
           "editorMode": "code",
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "SELECT * FROM node_details WHERE longitude != 0 AND longitude IS NOT NULL",
+          "rawSql": "SELECT\n    node_id,\n    short_name,\n    long_name,\n    hardware_model,\n    role,\n    mqtt_status,\n    longitude * 1e-7 AS longitude_norm,\n    latitude  * 1e-7 AS latitude_norm,\n    altitude\nFROM node_details\nWHERE longitude IS NOT NULL AND longitude <> 0",
           "refId": "Nodes",
           "sql": {
             "columns": [
@@ -2030,7 +2029,7 @@
           "value": "$__all"
         },
         "datasource": {
-          "type": "postgres",
+          "type": "grafana-postgresql-datasource",
           "uid": "PA942B37CCFAF5A81"
         },
         "definition": "SELECT \n  concat(long_name, ' (', node_id, ')') as __text, \n  node_id as __value \nFROM node_details \nORDER BY long_name",

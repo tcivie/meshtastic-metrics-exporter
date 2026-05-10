@@ -23,8 +23,8 @@
   "panels": [
     {
       "datasource": {
-        "type": "datasource",
-        "uid": "-- Mixed --"
+        "type": "grafana-postgresql-datasource",
+        "uid": "PA942B37CCFAF5A81"
       },
       "description": "Information about the clients we have in the network and their relative packets sent",
       "fieldConfig": {
@@ -49,17 +49,17 @@
                 "none": {
                   "color": "text",
                   "index": 2,
-                  "text": "⚪️ Unknown"
+                  "text": "\u26aa\ufe0f Unknown"
                 },
                 "offline": {
                   "color": "red",
                   "index": 1,
-                  "text": "🛑 offline"
+                  "text": "\ud83d\uded1 offline"
                 },
                 "online": {
                   "color": "green",
                   "index": 0,
-                  "text": "🟢 online"
+                  "text": "\ud83d\udfe2 online"
                 }
               },
               "type": "value"
@@ -344,19 +344,19 @@
         },
         {
           "datasource": {
-            "type": "prometheus",
+            "type": "grafana-postgresql-datasource",
             "uid": "PA942B37CCFAF5A81"
           },
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "sum by(source_id, portnum) (\n  mesh_packet_source_types_total\nand\n(mesh_packet_source_types_total - mesh_packet_source_types_total offset $__range) != 0\n)",
           "fullMetaSearch": false,
           "hide": false,
           "includeNullMetadata": false,
-          "legendFormat": "__auto",
-          "range": true,
           "refId": "Packet Types",
-          "useBackend": false
+          "useBackend": false,
+          "rawQuery": true,
+          "rawSql": "SELECT\n    source_id,\n    portnum,\n    COUNT(*) AS count\nFROM mesh_packet_metrics\nWHERE $__timeFilter(time)\nGROUP BY source_id, portnum\nORDER BY count DESC",
+          "format": "table"
         },
         {
           "datasource": {
